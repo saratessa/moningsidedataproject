@@ -4,11 +4,100 @@ format: html
 editor: visual
 ---
 
-Adding something here to test things out.
+Tidying Deidentified Data
 
-I'm adding more text to *test out* if I remember how to use **Git Kraken**
+Load Packages
 
 ```{r}
-install.packages("fxl")
-library(fxl)
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor) 
+library(readxl)
+```
+
+Bring in Identified Data, Merge Cohorts, Remove Names (2008-2009 and 2009-2010)
+
+(Note: this code is for first import)
+
+```{r}
+#Bringing in year 1
+
+df_2008 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2008-2009 pre-post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2008)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2008<- df_2008 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2008)
+
+#Bringing in year 2
+
+df_2009 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2009-2010 pre_post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2009)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2009<- df_2009 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2009)
+
+#Binding year 1 and year 2 into the same frame
+
+cohort1 <- bind_rows(df_2008, df_2009)
+view(cohort1)
+
+#Group by student and assign ID number
+
+cohort1 <- cohort1 %>%
+  group_by(name) %>%
+  mutate(
+    studentnum = cur_group_id(),
+    id = paste0(studentnum, "0810") #for 2008-2010 cohort id
+  ) %>%
+  ungroup() %>%
+  select(-studentnum) %>%
+  select(-name) %>%
+  relocate(id)
+
+
+view(cohort1)
+
+#export de-identified CSV 
+#Delete identified data frames from environment and proceed using cohort1.csv
+
+write_csv(cohort1, "cohort1.csv")
+rm(df_2008, df_2009)
 ```
