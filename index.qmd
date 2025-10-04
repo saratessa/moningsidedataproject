@@ -99,5 +99,67 @@ view(cohort1)
 #Delete identified data frames from environment and proceed using cohort1.csv
 
 write_csv(cohort1, "cohort1.csv")
-rm(df_2008, df_2009)
+rm(df_2008, df_2009, cohort1)
+```
+
+Prep for Multilevel Modeling
+
+```{r}
+df <- read.csv("cohort1.csv")
+#make sure cohort 1 is a dataframe and not a function
+class(df)
+
+#cleaning names and variable types
+colnames(df)
+names(df)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df <- df %>%
+  mutate(
+    id = as.factor(id),
+    cal_year = as.numeric(cal_year),
+    grade = as.numeric(grade),
+    time = as.numeric(time),     # 1 = fall, 2 = spring
+    measure = as.factor(measure),
+    score = as.numeric(score)
+  )
+
+#add a column to indicate program_year 1 or 2
+
+df <- df %>%
+  group_by(id) %>%
+  mutate(
+    # find the student's earliest year
+    first_year = min(cal_year, na.rm = TRUE),
+    # calculate how many years since the student's first year
+    program_year = cal_year - first_year + 1
+  ) %>%
+     select(-first_year)
+  ungroup()
+
+#adding a column indicating literacy or math
+
+df <- df %>%
+  mutate(
+    domain_type = case_when(
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
+      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
+      TRUE ~ "other"
+    )
+  )
+
+#adding a column with difference from score to actual grade level
+
+df <- df %>%
+  mutate(
+    grade_diff = score - grade
+  )
+
+#adding columns for centered variables 
+
+df <- df %>%
+  mutate(
+    grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
+    time_c = time - 1.5                                 # fall -.05 spring .05 for interpretability
+  )
+
+view(df)
 ```
