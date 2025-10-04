@@ -135,6 +135,10 @@ df <- df %>%
      select(-first_year)
   ungroup()
 
+#student_year identifier
+df <- df %>%
+  mutate(student_year = paste(id, cal_year, sep = "_"))
+
 #adding a column indicating literacy or math
 
 df <- df %>%
@@ -162,4 +166,45 @@ df <- df %>%
   )
 
 view(df)
+
+#Save over cohort1.csv so you don't have to do this part every time
+write_csv(df, "cohort1.csv")
+```
+
+Note: We'll need another code chunk here to figure out how to merge the separate cohorts into one giant dataframe
+
+```{r}
+#saving a spot for that
+```
+
+Multilevel Modeling
+
+```{r}
+#if starting here with de-identified and cleaned file 
+df <- cohort1
+view(df)
+```
+
+\*\*Leaving off here without having checked anything about the model below or it's interpretation!! 10/4
+
+```{r}
+library("lme4")
+library("lmerTest")
+
+# 3. Three-level multilevel model
+# Outcome: score
+# Predictors: time, grade_diff, domain_type
+# Random effects: student intercept + slope, program year intercept
+# -----------------------------
+model <- lmer(
+  score ~ time_c * domain_type + grade_diff_c + 
+    (1 + time_c | id) +      # random intercept & slope for student
+    (1 | program_year),      # random intercept for program year
+  data = df,
+  REML = TRUE
+)
+
+summary(model)
+
+
 ```
