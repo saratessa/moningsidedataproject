@@ -102,15 +102,109 @@ write_csv(cohort1, "cohort1.csv")
 rm(df_2008, df_2009, cohort1)
 ```
 
-Bring in Identified Data, Merge Cohorts, Remove Names (201 and 2009-2010)
+Bring in Identified Data, Merge Cohorts, Remove Names (2015-2016 and 2016-2017)
 
 (Note: this code is for first import)
 
-Prep for Multilevel Modeling
+Also note: we will have to do this again once we have grade levels for the 2016-2017 data
 
 ```{r}
-df <- read.csv("cohort1.csv")
-#make sure cohort 1 is a dataframe and not a function
+#Bringing in year 1
+
+df_2015 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2015-2016 pre-post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2015)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2015<- df_2015 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2015)
+
+#Bringing in year 2
+
+df_2016 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2016-2017 pre-post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2016)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2016<- df_2016 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2016)
+
+#Binding year 1 and year 2 into the same frame
+
+cohort2 <- bind_rows(df_2015, df_2016)
+view(cohort2)
+
+#Group by student and assign ID number
+
+cohort2 <- cohort2 %>%
+  group_by(name) %>%
+  mutate(
+    studentnum = cur_group_id(),
+    id = paste0(studentnum, "1517") #for 2015-2017 cohort id
+  ) %>%
+  ungroup() %>%
+  select(-studentnum) %>%
+  select(-name) %>%
+  relocate(id)
+
+
+view(cohort2)
+
+#export de-identified CSV 
+#Delete identified data frames from environment and proceed using cohort1.csv
+
+write_csv(cohort2, "cohort2.csv")
+rm(df_2015, df_2016, cohort2)
+
+
+```
+
+Prep for Multilevel Modeling
+
+Cohort 1 Code
+
+```{r}
+df1 <- read.csv("cohort1.csv")
+df2 <- read.csv("cohort2.csv")
+
+head(df1)
+head(df2)
+
+#make sure dfs are a dataframe and not a function
 class(df)
 
 #cleaning names and variable types
