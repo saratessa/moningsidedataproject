@@ -13,6 +13,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(janitor) 
 library(readxl)
+library(dplyr)
 ```
 
 Bring in Identified Data, Merge Cohorts, Remove Names (2008-2009 and 2009-2010)
@@ -104,9 +105,7 @@ rm(df_2008, df_2009, cohort1)
 
 Bring in Identified Data, Merge Cohorts, Remove Names (2015-2016 and 2016-2017)
 
-(Note: this code is for first import)
-
-Also note: we will have to do this again once we have grade levels for the 2016-2017 data
+(Note: this code is for first import and is DONE: cohort2.csv is in the repo)
 
 ```{r}
 #Bringing in year 1
@@ -195,11 +194,25 @@ rm(df_2015, df_2016, cohort2)
 
 Prep for Multilevel Modeling
 
-Cohort 1 Code
+Describing the Data
 
 ```{r}
 df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
+df_all <- bind_rows(df1, df2)
+
+
+df_all %>%
+  summarise(
+    total_students = n_distinct(id))
+
+
+
+
+```
+
+```{r}
+
 
 head(df1)
 head(df2)
