@@ -14,6 +14,8 @@ library(tidyverse)
 library(janitor) 
 library(readxl)
 library(dplyr)
+library(lme4)
+library(lmerTest)
 ```
 
 Bring in Identified Data, Merge Cohorts, Remove Names (2008-2009 and 2009-2010)
@@ -96,11 +98,76 @@ cohort1 <- cohort1 %>%
 
 view(cohort1)
 
-#export de-identified CSV 
+
 #Delete identified data frames from environment and proceed using cohort1.csv
 
 write_csv(cohort1, "cohort1.csv")
 rm(df_2008, df_2009, cohort1)
+df1 <- read.csv("cohort1.csv")
+
+
+#make sure dfs are a dataframe and not a function
+class(df1)
+head(df1)
+#cleaning names and variable types
+colnames(df1)
+names(df1)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df1 <- df1 %>%
+  mutate(
+    id = as.factor(id),
+    cal_year = as.numeric(cal_year),
+    grade = as.numeric(grade),
+    time = as.numeric(time),     # 1 = fall, 2 = spring
+    measure = as.factor(measure),
+    score = as.numeric(score)
+  )
+
+#add a column to indicate program_year 1 or 2
+
+df1 <- df1 %>%
+  group_by(id) %>%
+  mutate(
+    # find the student's earliest year
+    first_year = min(cal_year, na.rm = TRUE),
+    # calculate how many years since the student's first year
+    program_year = cal_year - first_year + 1
+  ) %>%
+     select(-first_year)
+
+
+#student_year identifier
+df1 <- df1 %>%
+  mutate(student_year = paste(id, cal_year, sep = "_"))
+
+#adding a column indicating literacy or math
+
+df1 <- df1 %>%
+  mutate(
+    domain_type = case_when(
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
+      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
+      TRUE ~ "other"
+    )
+  )
+
+#adding a column with difference from score to actual grade level
+
+df1 <- df1 %>%
+  mutate(
+    grade_diff = score - grade
+  )
+
+#adding columns for centered variables 
+
+df1 <- df1 %>%
+  mutate(
+    grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
+    time_c = time - 1.5                                 # fall -.05 spring .05 for interpretability
+  )
+
+view(df1)
+
+
 ```
 
 Bring in Identified Data, Merge Cohorts, Remove Names (2015-2016 and 2016-2017)
@@ -165,9 +232,7 @@ view(df_2016)
 #Binding year 1 and year 2 into the same frame
 
 cohort2 <- bind_rows(df_2015, df_2016)
-view(cohort2)
 
-#Group by student and assign ID number
 
 cohort2 <- cohort2 %>%
   group_by(name) %>%
@@ -183,47 +248,21 @@ cohort2 <- cohort2 %>%
 
 view(cohort2)
 
-#export de-identified CSV 
+
 #Delete identified data frames from environment and proceed using cohort1.csv
 
 write_csv(cohort2, "cohort2.csv")
 rm(df_2015, df_2016, cohort2)
-
-
-```
-
-Prep for Multilevel Modeling
-
-Describing the Data
-
-```{r}
-df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
-df_all <- bind_rows(df1, df2)
 
-
-df_all %>%
-  summarise(
-    total_students = n_distinct(id))
-
-
-
-
-```
-
-```{r}
-
-
-head(df1)
-head(df2)
 
 #make sure dfs are a dataframe and not a function
-class(df)
-
+class(df2)
+head(df2)
 #cleaning names and variable types
-colnames(df)
-names(df)<- c("id", "grade", "cal_year", "measure", "score", "time")
-df <- df %>%
+colnames(df2)
+names(df2)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df2 <- df2 %>%
   mutate(
     id = as.factor(id),
     cal_year = as.numeric(cal_year),
@@ -235,7 +274,7 @@ df <- df %>%
 
 #add a column to indicate program_year 1 or 2
 
-df <- df %>%
+df2 <- df2 %>%
   group_by(id) %>%
   mutate(
     # find the student's earliest year
@@ -244,15 +283,15 @@ df <- df %>%
     program_year = cal_year - first_year + 1
   ) %>%
      select(-first_year)
-  ungroup()
+ 
 
 #student_year identifier
-df <- df %>%
+df2 <- df2 %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
 #adding a column indicating literacy or math
 
-df <- df %>%
+df2 <- df2 %>%
   mutate(
     domain_type = case_when(
       measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
@@ -263,59 +302,95 @@ df <- df %>%
 
 #adding a column with difference from score to actual grade level
 
-df <- df %>%
+df2 <- df2 %>%
   mutate(
     grade_diff = score - grade
   )
 
 #adding columns for centered variables 
 
-df <- df %>%
+df2 <- df2 %>%
   mutate(
     grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
-    time_c = time - 1.5                                 # fall -.05 spring .05 for interpretability
-  )
+    time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
+  
 
-view(df)
+view(df2)
 
-#Save over cohort1.csv so you don't have to do this part every time
-write_csv(df, "cohort1.csv")
+
 ```
 
-Note: We'll need another code chunk here to figure out how to merge the separate cohorts into one giant dataframe
+Prep for Multilevel Modeling
+
+Describing the Data
 
 ```{r}
-#saving a spot for that
+df1 <- read.csv("cohort1.csv")
+df2 <- read.csv("cohort2.csv")
+view(df1)
+df_all <- bind_rows(df1, df2)
+view(df_all)
+```
+
+```{r}
+view(df_all)
+
+df_growth <- df_all %>%
+  arrange(id, program_year, measure, time) %>%
+  group_by(id, measure, domain_type, program_year) %>%
+  summarise(
+    growth = diff(score),             # spring – fall gain
+    start_grade_diff = first(grade_diff),  # how far behind/ahead they started
+    .groups = "drop"
+  )
+
+df_growth$program_year_f <- factor(df_growth$program_year, levels = c(1, 2))
+
+view(df_growth)
+
 ```
 
 Multilevel Modeling
 
 ```{r}
-#if starting here with de-identified and cleaned file 
-df <- cohort1
-view(df)
-```
 
-\*\*Leaving off here without having checked anything about the model below or it's interpretation!! 10/4
-
-```{r}
-library("lme4")
-library("lmerTest")
 
 # 3. Three-level multilevel model
 # Outcome: score
 # Predictors: time, grade_diff, domain_type
 # Random effects: student intercept + slope, program year intercept
 # -----------------------------
-model <- lmer(
-  score ~ time_c * domain_type + grade_diff_c + 
-    (1 + time_c | id) +      # random intercept & slope for student
-    (1 | program_year),      # random intercept for program year
-  data = df,
-  REML = TRUE
+
+
+model_prog_year  <- lmer(
+  growth ~ program_year_f * domain_type + start_grade_diff + (1 | id),
+  data = df_growth
 )
 
-summary(model)
+summary(model_prog_year)
 
 
+```
+
+```{r}
+
+library(ggeffects)
+library(ggplot2)
+
+# Get predicted means
+preds <- ggpredict(model_prog_year, terms = c("program_year_f", "domain_type"))
+
+# Plot predicted growth for Year 1 and Year 2 only
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_line(aes(group = group), size = 1) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_discrete(labels = c("Year 1", "Year 2")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    x = "Program Year",
+    y = "Predicted Growth (Grade Equivalent Units)",
+    color = "Domain",
+    title = "Predicted Growth by Program Year and Domain Type"
+  )
 ```
