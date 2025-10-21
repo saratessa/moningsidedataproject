@@ -98,21 +98,13 @@ cohort1 <- cohort1 %>%
 
 view(cohort1)
 
-
-#Delete identified data frames from environment and proceed using cohort1.csv
-
-write_csv(cohort1, "cohort1.csv")
-rm(df_2008, df_2009, cohort1)
-df1 <- read.csv("cohort1.csv")
-
-
 #make sure dfs are a dataframe and not a function
-class(df1)
-head(df1)
+class(cohort1)
+head(cohort1)
 #cleaning names and variable types
-colnames(df1)
-names(df1)<- c("id", "grade", "cal_year", "measure", "score", "time")
-df1 <- df1 %>%
+colnames(cohort1)
+names(cohort1)<- c("id", "grade", "cal_year", "measure", "score", "time")
+cohort1 <- cohort1 %>%
   mutate(
     id = as.factor(id),
     cal_year = as.numeric(cal_year),
@@ -124,7 +116,7 @@ df1 <- df1 %>%
 
 #add a column to indicate program_year 1 or 2
 
-df1 <- df1 %>%
+cohort1 <- cohort1 %>%
   group_by(id) %>%
   mutate(
     # find the student's earliest year
@@ -136,12 +128,12 @@ df1 <- df1 %>%
 
 
 #student_year identifier
-df1 <- df1 %>%
+cohort1 <- cohort1 %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
 #adding a column indicating literacy or math
 
-df1 <- df1 %>%
+cohort1 <- cohort1 %>%
   mutate(
     domain_type = case_when(
       measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
@@ -152,21 +144,25 @@ df1 <- df1 %>%
 
 #adding a column with difference from score to actual grade level
 
-df1 <- df1 %>%
+cohort1 <- cohort1 %>%
   mutate(
     grade_diff = score - grade
   )
 
 #adding columns for centered variables 
 
-df1 <- df1 %>%
+cohort1 <- cohort1 %>%
   mutate(
     grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
     time_c = time - 1.5                                 # fall -.05 spring .05 for interpretability
   )
 
-view(df1)
+view(cohort1)
+#Delete identified data frames from environment and proceed using cohort1.csv
 
+write_csv(cohort1, "cohort1.csv")
+rm(df_2008, df_2009, cohort1)
+df1 <- read.csv("cohort1.csv")
 
 ```
 
@@ -233,12 +229,11 @@ view(df_2016)
 
 cohort2 <- bind_rows(df_2015, df_2016)
 
-
 cohort2 <- cohort2 %>%
   group_by(name) %>%
   mutate(
     studentnum = cur_group_id(),
-    id = paste0(studentnum, "1517") #for 2015-2017 cohort id
+    id = paste0(studentnum, "0810") #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
   select(-studentnum) %>%
@@ -248,21 +243,13 @@ cohort2 <- cohort2 %>%
 
 view(cohort2)
 
-
-#Delete identified data frames from environment and proceed using cohort1.csv
-
-write_csv(cohort2, "cohort2.csv")
-rm(df_2015, df_2016, cohort2)
-df2 <- read.csv("cohort2.csv")
-
-
 #make sure dfs are a dataframe and not a function
-class(df2)
-head(df2)
+class(cohort2)
+head(cohort2)
 #cleaning names and variable types
-colnames(df2)
-names(df2)<- c("id", "grade", "cal_year", "measure", "score", "time")
-df2 <- df2 %>%
+colnames(cohort2)
+names(cohort2)<- c("id", "grade", "cal_year", "measure", "score", "time")
+cohort2 <- cohort2 %>%
   mutate(
     id = as.factor(id),
     cal_year = as.numeric(cal_year),
@@ -272,9 +259,10 @@ df2 <- df2 %>%
     score = as.numeric(score)
   )
 
+
 #add a column to indicate program_year 1 or 2
 
-df2 <- df2 %>%
+cohort2 <- cohort2 %>%
   group_by(id) %>%
   mutate(
     # find the student's earliest year
@@ -286,12 +274,12 @@ df2 <- df2 %>%
  
 
 #student_year identifier
-df2 <- df2 %>%
+cohort2 <- cohort2 %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
 #adding a column indicating literacy or math
 
-df2 <- df2 %>%
+cohort2 <- cohort2 %>%
   mutate(
     domain_type = case_when(
       measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
@@ -302,20 +290,25 @@ df2 <- df2 %>%
 
 #adding a column with difference from score to actual grade level
 
-df2 <- df2 %>%
+cohort2 <- cohort2 %>%
   mutate(
     grade_diff = score - grade
   )
 
 #adding columns for centered variables 
 
-df2 <- df2 %>%
+cohort2 <- cohort2 %>%
   mutate(
     grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
     time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
   
 
-view(df2)
+
+#Delete identified data frames from environment and proceed using cohort1.csv
+
+write_csv(cohort2, "cohort2.csv")
+rm(df_2015, df_2016, cohort2)
+df2 <- read.csv("cohort2.csv")
 
 
 ```
@@ -327,7 +320,7 @@ Bring in Identified Data, Merge Cohorts, Remove Names (2023-2024 and 2024-2025)
 ```{r}
 #Bringing in year 1
 
-df_2023 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2023-2024 pre-post.xlsx") %>%
+df_2023 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2023-2024 pre_post.xlsx") %>%
   clean_names() %>%
   mutate(year_start = 2023)
 
@@ -380,6 +373,10 @@ df_2024<- df_2024 %>%
 view(df_2024)
 
 #Binding year 1 and year 2 into the same frame
+df_2023 <- df_2023 %>%
+  mutate(
+    grade = as.numeric(grade)
+  )
 
 cohort3 <- bind_rows(df_2023, df_2024)
 
@@ -399,20 +396,14 @@ cohort3 <- cohort3 %>%
 view(cohort3)
 
 
-#Delete identified data frames from environment and proceed using cohort1.csv
-
-write_csv(cohort3, "cohort3.csv")
-rm(df_2023, df_2024, cohort3)
-df3 <- read.csv("cohort3.csv")
-
 
 #make sure dfs are a dataframe and not a function
-class(df3)
-head(df3)
+class(cohort3)
+head(cohort3)
 #cleaning names and variable types
-colnames(df3)
-names(df3)<- c("id", "grade", "cal_year", "measure", "score", "time")
-df3 <- df3 %>%
+colnames(cohort3)
+names(cohort3)<- c("id", "grade", "cal_year", "measure", "score", "time")
+cohort3 <- cohort3 %>%
   mutate(
     id = as.factor(id),
     cal_year = as.numeric(cal_year),
@@ -424,7 +415,7 @@ df3 <- df3 %>%
 
 #add a column to indicate program_year 1 or 2
 
-df3 <- df3 %>%
+cohort3 <- cohort3 %>%
   group_by(id) %>%
   mutate(
     # find the student's earliest year
@@ -436,15 +427,15 @@ df3 <- df3 %>%
  
 
 #student_year identifier
-df3 <- df3 %>%
+cohort3 <- cohort3 %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
 #adding a column indicating literacy or math
 
-df3 <- df3 %>%
+cohort3 <- cohort3 %>%
   mutate(
     domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws", "we", "ed", "towl") ~ "literacy",
       measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
       TRUE ~ "other"
     )
@@ -452,18 +443,26 @@ df3 <- df3 %>%
 
 #adding a column with difference from score to actual grade level
 
-df3 <- df3 %>%
+cohort3 <- cohort3 %>%
   mutate(
     grade_diff = score - grade
   )
 
 #adding columns for centered variables 
 
-df3 <- df3 %>%
+cohort3 <- cohort3 %>%
   mutate(
     grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
     time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
-  
+
+
+
+#Delete identified data frames from environment and proceed using cohort1.csv
+
+write_csv(cohort3, "cohort3.csv")
+rm(df_2023, df_2024, cohort3)
+df3 <- read.csv("cohort3.csv")
+
 
 view(df3)
 ```
@@ -480,7 +479,7 @@ df_all <- bind_rows(df1, df2, df3)
 ```
 
 ```{r}
-view(df_all)
+
 
 df_growth <- df_all %>%
   arrange(id, program_year, measure, time) %>%
@@ -493,7 +492,7 @@ df_growth <- df_all %>%
 
 df_growth$program_year_f <- factor(df_growth$program_year, levels = c(1, 2))
 
-view(df_growth)
+
 
 ```
 
