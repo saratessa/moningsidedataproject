@@ -320,6 +320,154 @@ view(df2)
 
 ```
 
+Bring in Identified Data, Merge Cohorts, Remove Names (2023-2024 and 2024-2025)
+
+(Note: not done, need data file for 24-25)
+
+```{r}
+#Bringing in year 1
+
+df_2023 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2023-2024 pre-post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2023)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2023<- df_2023 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2023)
+
+#Bringing in year 2
+
+df_2024 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2024-2025 pre-post.xlsx") %>%
+  clean_names() %>%
+  mutate(year_start = 2024)
+
+#Switching wide to long, renaming spring/fall to time 1 and 2
+
+df_2024<- df_2024 %>%
+  pivot_longer(
+    cols = c(starts_with("FALL"), starts_with("SPRING")),
+    names_to = c("Season", "Measure"),
+    names_sep = "_",
+    values_to = "Score"
+  ) %>%
+  mutate(
+    Season = str_to_lower(Season),
+    Time = case_when(
+      Season == "fall" ~ 1,
+      Season == "spring" ~ 2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  select(-Season) 
+
+view(df_2024)
+
+#Binding year 1 and year 2 into the same frame
+
+cohort3 <- bind_rows(df_2023, df_2024)
+
+
+cohort3 <- cohort3 %>%
+  group_by(name) %>%
+  mutate(
+    studentnum = cur_group_id(),
+    id = paste0(studentnum, "2325") #for 2023-2025 cohort id
+  ) %>%
+  ungroup() %>%
+  select(-studentnum) %>%
+  select(-name) %>%
+  relocate(id)
+
+
+view(cohort3)
+
+
+#Delete identified data frames from environment and proceed using cohort1.csv
+
+write_csv(cohort3, "cohort3.csv")
+rm(df_2023, df_2024, cohort3)
+df3 <- read.csv("cohort3.csv")
+
+
+#make sure dfs are a dataframe and not a function
+class(df3)
+head(df3)
+#cleaning names and variable types
+colnames(df3)
+names(df3)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df3 <- df3 %>%
+  mutate(
+    id = as.factor(id),
+    cal_year = as.numeric(cal_year),
+    grade = as.numeric(grade),
+    time = as.numeric(time),     # 1 = fall, 2 = spring
+    measure = as.factor(measure),
+    score = as.numeric(score)
+  )
+
+#add a column to indicate program_year 1 or 2
+
+df3 <- df3 %>%
+  group_by(id) %>%
+  mutate(
+    # find the student's earliest year
+    first_year = min(cal_year, na.rm = TRUE),
+    # calculate how many years since the student's first year
+    program_year = cal_year - first_year + 1
+  ) %>%
+     select(-first_year)
+ 
+
+#student_year identifier
+df3 <- df3 %>%
+  mutate(student_year = paste(id, cal_year, sep = "_"))
+
+#adding a column indicating literacy or math
+
+df3 <- df3 %>%
+  mutate(
+    domain_type = case_when(
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
+      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
+      TRUE ~ "other"
+    )
+  )
+
+#adding a column with difference from score to actual grade level
+
+df3 <- df3 %>%
+  mutate(
+    grade_diff = score - grade
+  )
+
+#adding columns for centered variables 
+
+df3 <- df3 %>%
+  mutate(
+    grade_diff_c = grade_diff - mean(grade_diff, na.rm = TRUE), #interprets effect of being above/below average
+    time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
+  
+
+view(df3)
+```
+
 Prep for Multilevel Modeling
 
 Describing the Data
@@ -327,9 +475,8 @@ Describing the Data
 ```{r}
 df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
-view(df1)
-df_all <- bind_rows(df1, df2)
-view(df_all)
+df3 <- read.csv("cohort3.csv")
+df_all <- bind_rows(df1, df2, df3)
 ```
 
 ```{r}
