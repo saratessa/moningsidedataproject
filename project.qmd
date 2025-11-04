@@ -1,0 +1,72 @@
+---
+title: "project"
+format: html
+editor: visual
+---
+
+Prep for Multilevel Modeling
+
+Describing the Data
+
+```{r}
+df1 <- read.csv("cohort1.csv")
+df2 <- read.csv("cohort2.csv")
+df3 <- read.csv("cohort3.csv")
+df_all <- bind_rows(df1, df2, df3)
+```
+
+```{r}
+
+df_growth <- df_all %>%
+  arrange(id, program_year, measure, time) %>%
+  group_by(id, measure, domain_type, program_year) %>%
+  summarise(
+    growth = diff(score),             # spring – fall gain
+    start_grade_diff = first(grade_diff),  # how far behind/ahead they started
+    .groups = "drop"
+  )
+
+df_growth$program_year_f <- factor(df_growth$program_year, levels = c(1, 2))
+
+```
+
+Multilevel Modeling
+
+```{r}
+# 3. Three-level multilevel model
+# Outcome: score
+# Predictors: time, grade_diff, domain_type
+# Random effects: student intercept + slope, program year intercept
+# -----------------------------
+
+
+model_prog_year  <- lmer(
+  growth ~ program_year_f * domain_type + start_grade_diff + (1 | id),
+  data = df_growth
+)
+
+summary(model_prog_year)
+
+```
+
+```{r}
+library(ggeffects)
+library(ggplot2)
+
+# Get predicted means
+preds <- ggpredict(model_prog_year, terms = c("program_year_f", "domain_type"))
+
+# Plot predicted growth for Year 1 and Year 2 only
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_line(aes(group = group), size = 1) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_discrete(labels = c("Year 1", "Year 2")) +
+  theme_minimal(base_size = 14) +
+  labs(
+    x = "Program Year",
+    y = "Predicted Growth (Grade Equivalent Units)",
+    color = "Domain",
+    title = "Predicted Growth by Program Year and Domain Type"
+  )
+```
