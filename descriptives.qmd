@@ -1,0 +1,42 @@
+---
+title: "descriptives"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+
+```
+
+```{r}
+files <- c("cohort1.csv", "cohort2.csv", "cohort3.csv")
+
+for (file in files) {
+  cat("\n\n----", file, "----\n")
+  df <- read_csv(file)
+  
+  cat("Unique students:", n_distinct(df$id), "\n")
+  
+  enrollment <- df %>%
+    group_by(id) %>%
+    summarise(years_enrolled = n_distinct(program_year)) %>%
+    mutate(enrollment_type = if_else(years_enrolled > 1, "2+ years", "1 year")) %>%
+    count(enrollment_type)
+  
+  print(enrollment)
+  
+  grade_summary <- df %>% 
+     group_by(id) %>%
+    count(grade, name = "n_students") %>% arrange(grade)
+  print(grade_summary)
+  
+  missingness <- df %>%
+    summarise(across(everything(), ~ mean(is.na(.)) * 100)) %>%
+    pivot_longer(cols = everything(),
+                 names_to = "variable",
+                 values_to = "percent_missing")
+  print(missingness)
+}
+
+```
