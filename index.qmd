@@ -315,7 +315,7 @@ df2 <- read.csv("cohort2.csv")
 
 Bring in Identified Data, Merge Cohorts, Remove Names (2023-2024 and 2024-2025)
 
-(Note: not done, need data file for 24-25)
+(Note: this code is for first import and is DONE: cohort3.csv is in the repo)
 
 ```{r}
 #Bringing in year 1
@@ -435,7 +435,7 @@ cohort3 <- cohort3 %>%
 cohort3 <- cohort3 %>%
   mutate(
     domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws", "we", "ed", "towl") ~ "literacy",
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws", "we") ~ "literacy",
       measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
       TRUE ~ "other"
     )
@@ -482,11 +482,12 @@ df_all <- bind_rows(df1, df2, df3)
 
 
 df_growth <- df_all %>%
+  filter(domain_type != "other") %>%          # ← EXCLUDE "other"
   arrange(id, program_year, measure, time) %>%
   group_by(id, measure, domain_type, program_year) %>%
   summarise(
-    growth = diff(score),             # spring – fall gain
-    start_grade_diff = first(grade_diff),  # how far behind/ahead they started
+    growth = diff(score),                     # spring – fall gain
+    start_grade_diff = first(grade_diff),     # how far behind/ahead they started
     .groups = "drop"
   )
 
@@ -509,7 +510,7 @@ Multilevel Modeling
 
 
 model_prog_year  <- lmer(
-  growth ~ program_year_f * domain_type + start_grade_diff + (1 | id),
+  growth ~ program_year_f * domain_type + measure + start_grade_diff + (1 | id), #add individual item 
   data = df_growth
 )
 
@@ -517,6 +518,40 @@ summary(model_prog_year)
 
 
 ```
+
+library(ggeffects)
+
+library(ggplot2)
+
+\# Get predicted means
+
+preds \<- ggpredict(model_prog_year, terms = c("program_year_f", "domain_type"))
+
+\# Plot predicted growth for Year 1 and Year 2 only
+
+ggplot(preds, aes(x = x, y = predicted, color = group)) +
+
+geom_point(size = 3) +
+
+geom_line(aes(group = group), size = 1) +
+
+geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+
+scale_x_discrete(labels = c("Year 1", "Year 2")) +
+
+theme_minimal(base_size = 14) +
+
+labs(
+
+x = "Program Year",
+
+y = "Predicted Growth (Grade Equivalent Units)",
+
+color = "Domain",
+
+title = "Predicted Growth by Program Year and Domain Type"
+
+)
 
 ```{r}
 

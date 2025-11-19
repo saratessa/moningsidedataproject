@@ -6,23 +6,28 @@ editor: visual
 
 Prep for Multilevel Modeling
 
-Describing the Data
+Binding separate cohorts and writing a new .csv with all files (skip this):
 
 ```{r}
 df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
 df3 <- read.csv("cohort3.csv")
 df_all <- bind_rows(df1, df2, df3)
+
+write.csv(df_all, "df_all_combined.csv", row.names = FALSE)
+
+df_all <- read.csv("df_all_combined.csv")
 ```
 
 ```{r}
 
 df_growth <- df_all %>%
+  filter(domain_type != "other") %>%          # ← EXCLUDE "other"
   arrange(id, program_year, measure, time) %>%
   group_by(id, measure, domain_type, program_year) %>%
   summarise(
-    growth = diff(score),             # spring – fall gain
-    start_grade_diff = first(grade_diff),  # how far behind/ahead they started
+    growth = diff(score),                     # spring – fall gain
+    start_grade_diff = first(grade_diff),     # how far behind/ahead they started
     .groups = "drop"
   )
 
@@ -41,7 +46,7 @@ Multilevel Modeling
 
 
 model_prog_year  <- lmer(
-  growth ~ program_year_f * domain_type + start_grade_diff + (1 | id),
+  growth ~ program_year_f * domain_type + measure + start_grade_diff + (1 | id),
   data = df_growth
 )
 
