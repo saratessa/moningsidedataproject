@@ -19,6 +19,25 @@ write.csv(df_all, "df_all_combined.csv", row.names = FALSE)
 df_all <- read.csv("df_all_combined.csv")
 ```
 
+\
+
+```{r}
+df_all <- df_all %>%
+  group_by(id, cal_year, measure) %>%   # each student, each year, each skill
+  mutate(
+    fall_score  = if_else(time == 1, score, NA_real_),
+    spring_score = if_else(time == 2, score, NA_real_)
+  ) %>%
+  fill(fall_score, spring_score, .direction = "downup") %>% 
+ mutate(
+  raw_growth = if_else(time == 2, spring_score - fall_score, NA_real_)
+)%>%
+  ungroup()
+```
+
+\
+\
+
 ```{r}
 
 df_growth <- df_all %>%
@@ -45,9 +64,13 @@ Multilevel Modeling
 # -----------------------------
 
 
-model_prog_year  <- lmer(
-  growth ~ program_year_f * domain_type + measure + start_grade_diff + (1 | id),
-  data = df_growth
+df_use <- df_all %>%
+  filter(domain_type != "other", time == 2)    # only spring rows carry the real gain
+
+model_prog_year <- lmer(
+  raw_growth ~ factor(program_year) * domain_type + 
+    measure + grade_diff + (1 | id),
+  data = df_use
 )
 
 summary(model_prog_year)
@@ -58,20 +81,34 @@ summary(model_prog_year)
 library(ggeffects)
 library(ggplot2)
 
-# Get predicted means
-preds <- ggpredict(model_prog_year, terms = c("program_year_f", "domain_type"))
+# Get predicted means from the long-format model
+preds <- ggpredict(
+  model_prog_year,
+  terms = c("program_year", "domain_type")   # <- use original variable name
+)
 
-# Plot predicted growth for Year 1 and Year 2 only
+# Plot predicted raw gains
 ggplot(preds, aes(x = x, y = predicted, color = group)) +
   geom_point(size = 3) +
   geom_line(aes(group = group), size = 1) +
   geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
-  scale_x_discrete(labels = c("Year 1", "Year 2")) +
+  scale_x_continuous(
+    breaks = c(1, 2),
+    labels = c("Year 1", "Year 2")
+  ) +
+  scale_y_continuous(
+    limits = c(1, 2.5),
+    breaks = seq(1, 2.5, by = 0.25)
+  ) +
   theme_minimal(base_size = 14) +
   labs(
     x = "Program Year",
-    y = "Predicted Growth (Grade Equivalent Units)",
+    y = "Predicted Raw Growth (Spring − Fall)",
     color = "Domain",
-    title = "Predicted Growth by Program Year and Domain Type"
+    title = "Predicted Raw Growth by Program Year and Domain Type"
   )
+```
+
+```{r}
+summary(df_all)
 ```
