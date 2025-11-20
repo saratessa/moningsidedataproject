@@ -112,3 +112,50 @@ ggplot(preds, aes(x = x, y = predicted, color = group)) +
 ```{r}
 summary(df_all)
 ```
+
+Model Without Domain Breakdown:
+
+```{r}
+df_use_overall <- df_all %>%
+  filter(domain_type != "other", time == 2)
+
+# Linear mixed model: raw growth ~ program year + measure + starting grade_diff
+model_prog_year_overall <- lmer(
+  raw_growth ~ factor(program_year) + 
+    measure + grade_diff + (1 | id),
+  data = df_use_overall
+)
+
+summary(model_prog_year_overall)
+```
+
+```{r}
+library(ggeffects)
+library(ggplot2)
+
+# Get predicted means for program year only
+preds_overall <- ggpredict(
+  model_prog_year_overall,
+  terms = "program_year"
+)
+
+# Plot
+ggplot(preds_overall, aes(x = x, y = predicted)) +
+  geom_point(size = 3, color = "steelblue") +
+  geom_line(aes(group = 1), size = 1, color = "steelblue") +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1, color = "steelblue") +
+  scale_x_continuous(
+    breaks = c(1, 2),
+    labels = c("Year 1", "Year 2")
+  ) +
+  scale_y_continuous(
+    limits = c(1.5, 2.5),
+    breaks = seq(1.5, 2.5, by = 0.25)
+  ) +
+  theme_minimal(base_size = 14) +
+  labs(
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    title = "Predicted Overall Raw Growth by Program Year"
+  )
+```
