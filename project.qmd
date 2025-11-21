@@ -19,8 +19,6 @@ write.csv(df_all, "df_all_combined.csv", row.names = FALSE)
 df_all <- read.csv("df_all_combined.csv")
 ```
 
-\
-
 ```{r}
 df_all <- df_all %>%
   group_by(id, cal_year, measure) %>%   # each student, each year, each skill
@@ -34,9 +32,6 @@ df_all <- df_all %>%
 )%>%
   ungroup()
 ```
-
-\
-\
 
 ```{r}
 
