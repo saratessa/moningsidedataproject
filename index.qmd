@@ -4,7 +4,7 @@ format: html
 editor: visual
 ---
 
-Tidying Deidentified Data
+## Tidying Deidentified Data
 
 Load Packages
 
@@ -18,13 +18,9 @@ library(lme4)
 library(lmerTest)
 ```
 
-Bring in Identified Data, Merge Cohorts, Remove Names (2008-2009 and 2009-2010)
-
-(Note: this code is for first import and is DONE: cohort1.csv is in the repo)
+## Deidentifying 2008-2009 and 2009-2010
 
 ```{r}
-#Bringing in year 1
-
 df_2008 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2008-2009 pre-post.xlsx") %>%
   clean_names() %>%
   mutate(year_start = 2008)
@@ -47,8 +43,6 @@ df_2008<- df_2008 %>%
     )
   ) %>%
   select(-Season) 
-
-view(df_2008)
 
 #Bringing in year 2
 
@@ -75,12 +69,11 @@ df_2009<- df_2009 %>%
   ) %>%
   select(-Season) 
 
-view(df_2009)
+#At this point the data has name, grade, year_start (e.g., school year starts in 2008, measure, score, and time (e.g., measurement 1 or 2))
 
 #Binding year 1 and year 2 into the same frame
 
 cohort1 <- bind_rows(df_2008, df_2009)
-view(cohort1)
 
 #Group by student and assign ID number
 
@@ -95,82 +88,13 @@ cohort1 <- cohort1 %>%
   select(-name) %>%
   relocate(id)
 
-
-view(cohort1)
-
-#make sure dfs are a dataframe and not a function
-class(cohort1)
-head(cohort1)
-#cleaning names and variable types
-colnames(cohort1)
-names(cohort1)<- c("id", "grade", "cal_year", "measure", "score", "time")
-cohort1 <- cohort1 %>%
-  mutate(
-    id = as.factor(id),
-    cal_year = as.numeric(cal_year),
-    grade = as.numeric(grade),
-    time = as.numeric(time),     # 1 = fall, 2 = spring
-    measure = as.factor(measure),
-    score = as.numeric(score)
-  )
-
-#add a column to indicate program_year 1 or 2
-
-cohort1 <- cohort1 %>%
-  group_by(id) %>%
-  mutate(
-    # find the student's earliest year
-    first_year = min(cal_year, na.rm = TRUE),
-    # calculate how many years since the student's first year
-    program_year = cal_year - first_year + 1
-  ) %>%
-     select(-first_year)
-
-
-#student_year identifier
-cohort1 <- cohort1 %>%
-  mutate(student_year = paste(id, cal_year, sep = "_"))
-
-#adding a column indicating literacy or math
-
-cohort1 <- cohort1 %>%
-  mutate(
-    domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
-      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
-      TRUE ~ "other"
-    )
-  )
-
-#adding a column with difference from score to actual grade level
-
-cohort1 <- cohort1 %>%
-  mutate(
-    grade_diff = score - grade
-  )
-
-#adding columns for centered variables 
-
-cohort1 <- cohort1 %>%
-  mutate(
-    time_c = time - 1.5                                 # fall -.05 spring .05 for interpretability
-  )
-
-view(cohort1)
-#Delete identified data frames from environment and proceed using cohort1.csv
-
 write_csv(cohort1, "cohort1.csv")
 rm(df_2008, df_2009, cohort1)
-df1 <- read.csv("cohort1.csv")
-
 ```
 
-Bring in Identified Data, Merge Cohorts, Remove Names (2015-2016 and 2016-2017)
-
-(Note: this code is for first import and is DONE: cohort2.csv is in the repo)
+## Deidentifying 2015-2016 and 2016-2017
 
 ```{r}
-
 df_2015 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identified data files/2015-2016 pre-post.xlsx") %>%
   clean_names() %>%
   mutate(year_start = 2015)
@@ -185,6 +109,7 @@ df_2015<- df_2015 %>%
     values_to = "Score"
   ) %>%
   mutate(
+    Score = as.numeric(Score),
     Season = str_to_lower(Season),
     Time = case_when(
       Season == "fall" ~ 1,
@@ -193,8 +118,6 @@ df_2015<- df_2015 %>%
     )
   ) %>%
   select(-Season) 
-
-view(df_2015)
 
 #Bringing in year 2
 
@@ -212,6 +135,7 @@ df_2016<- df_2016 %>%
     values_to = "Score"
   ) %>%
   mutate(
+    Score = as.numeric(Score),
     Season = str_to_lower(Season),
     Time = case_when(
       Season == "fall" ~ 1,
@@ -220,8 +144,6 @@ df_2016<- df_2016 %>%
     )
   ) %>%
   select(-Season) 
-
-view(df_2016)
 
 #Binding year 1 and year 2 into the same frame
 
@@ -238,81 +160,11 @@ cohort2 <- cohort2 %>%
   select(-name) %>%
   relocate(id)
 
-
-view(cohort2)
-
-#make sure dfs are a dataframe and not a function
-class(cohort2)
-head(cohort2)
-#cleaning names and variable types
-colnames(cohort2)
-names(cohort2)<- c("id", "grade", "cal_year", "measure", "score", "time")
-cohort2 <- cohort2 %>%
-  mutate(
-    id = as.factor(id),
-    cal_year = as.numeric(cal_year),
-    grade = as.numeric(grade),
-    time = as.numeric(time),     # 1 = fall, 2 = spring
-    measure = as.factor(measure),
-    score = as.numeric(score)
-  )
-
-
-#add a column to indicate program_year 1 or 2
-
-cohort2 <- cohort2 %>%
-  group_by(id) %>%
-  mutate(
-    # find the student's earliest year
-    first_year = min(cal_year, na.rm = TRUE),
-    # calculate how many years since the student's first year
-    program_year = cal_year - first_year + 1
-  ) %>%
-     select(-first_year)
- 
-
-#student_year identifier
-cohort2 <- cohort2 %>%
-  mutate(student_year = paste(id, cal_year, sep = "_"))
-
-#adding a column indicating literacy or math
-
-cohort2 <- cohort2 %>%
-  mutate(
-    domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
-      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
-      TRUE ~ "other"
-    )
-  )
-
-#adding a column with difference from score to actual grade level
-
-cohort2 <- cohort2 %>%
-  mutate(
-    grade_diff = score - grade
-  )
-
-#adding columns for centered variables 
-
-cohort2 <- cohort2 %>%
-  mutate(
-    time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
-  
-
-
-#Delete identified data frames from environment and proceed using cohort1.csv
-
 write_csv(cohort2, "cohort2.csv")
 rm(df_2015, df_2016, cohort2)
-df2 <- read.csv("cohort2.csv")
-
-
 ```
 
-Bring in Identified Data, Merge Cohorts, Remove Names (2023-2024 and 2024-2025)
-
-(Note: this code is for first import and is DONE: cohort3.csv is in the repo)
+## Deidentifying 2023-2024 and 2024-2025
 
 ```{r}
 #Bringing in year 1
@@ -331,6 +183,7 @@ df_2023<- df_2023 %>%
     values_to = "Score"
   ) %>%
   mutate(
+    Score = as.numeric(Score),
     Season = str_to_lower(Season),
     Time = case_when(
       Season == "fall" ~ 1,
@@ -340,7 +193,6 @@ df_2023<- df_2023 %>%
   ) %>%
   select(-Season) 
 
-view(df_2023)
 
 #Bringing in year 2
 
@@ -358,6 +210,7 @@ df_2024<- df_2024 %>%
     values_to = "Score"
   ) %>%
   mutate(
+    Score = as.numeric(Score),
     Season = str_to_lower(Season),
     Time = case_when(
       Season == "fall" ~ 1,
@@ -367,7 +220,6 @@ df_2024<- df_2024 %>%
   ) %>%
   select(-Season) 
 
-view(df_2024)
 
 #Binding year 1 and year 2 into the same frame
 df_2023 <- df_2023 %>%
@@ -389,18 +241,26 @@ cohort3 <- cohort3 %>%
   select(-name) %>%
   relocate(id)
 
+write_csv(cohort3, "cohort3.csv")
+rm(df_2023, df_2024, cohort3)
+```
 
-view(cohort3)
+## Start Here for Code Changes: Combines De-Identified CSVs
 
+```{r}
+df1 <- read.csv("cohort1.csv")
+df2 <- read.csv("cohort2.csv")
+df3 <- read.csv("cohort3.csv")
+df_all <- bind_rows(df1, df2, df3)
+```
 
+## Cleaning, Manipulating, Centering Variables for Analysis
 
-#make sure dfs are a dataframe and not a function
-class(cohort3)
-head(cohort3)
-#cleaning names and variable types
-colnames(cohort3)
-names(cohort3)<- c("id", "grade", "cal_year", "measure", "score", "time")
-cohort3 <- cohort3 %>%
+```{r}
+
+colnames(df_all)
+names(df_all)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df_all <- df_all %>%
   mutate(
     id = as.factor(id),
     cal_year = as.numeric(cal_year),
@@ -410,9 +270,7 @@ cohort3 <- cohort3 %>%
     score = as.numeric(score)
   )
 
-#add a column to indicate program_year 1 or 2
-
-cohort3 <- cohort3 %>%
+df_all <- df_all %>%
   group_by(id) %>%
   mutate(
     # find the student's earliest year
@@ -421,18 +279,30 @@ cohort3 <- cohort3 %>%
     program_year = cal_year - first_year + 1
   ) %>%
      select(-first_year)
- 
+
+#adding a column for a continuous time variable (e.g., 1,2,3,4 time points)
+df_all <- df_all %>%
+  arrange(id, cal_year, time) %>%  # make sure data is sorted correctly
+  group_by(id) %>%
+  mutate(
+    time_cont = (cal_year - min(cal_year)) * 2 + time
+    # Explanation:
+    # min(cal_year) = first year for the student
+    # *2 because there are 2 time points per year (fall, spring)
+    # + time to get either 1 or 2 within that year
+  ) %>%
+  ungroup()
 
 #student_year identifier
-cohort3 <- cohort3 %>%
+df_all <- df_all %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
 #adding a column indicating literacy or math
 
-cohort3 <- cohort3 %>%
+df_all <- df_all %>%
   mutate(
     domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws", "we") ~ "literacy",
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
       measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
       TRUE ~ "other"
     )
@@ -440,39 +310,68 @@ cohort3 <- cohort3 %>%
 
 #adding a column with difference from score to actual grade level
 
-cohort3 <- cohort3 %>%
+df_all <- df_all %>%
   mutate(
     grade_diff = score - grade
   )
 
+df_all <- df_all %>%
+  group_by(id, program_year, measure) %>%
+  mutate(
+    start_grade_diff = grade_diff[time == 1]   # fall = time 1
+  ) %>%
+  ungroup()
+
+#adding raw growth score on each measure
+
+df_all <- df_all %>%
+  group_by(id, cal_year, measure) %>%
+  arrange(time) %>%
+  mutate(
+    fall_score   = first(score),
+    spring_score = last(score),
+    raw_growth   = spring_score - fall_score
+  ) %>%
+  ungroup()
+
+
 #adding columns for centered variables 
 
-cohort3 <- cohort3 %>%
+df_all <- df_all%>%
   mutate(
-    time_c = time - 1.5)                   # fall -.05 spring .05 for interpretability
+    start_grade_diff_c = as.numeric(scale(start_grade_diff, scale = FALSE)),  # center without scaling
+    time_c = time_cont - mean(time_cont, na.rm = TRUE)                          # center continuous time
+  ) %>%
+  ungroup()
 
-
-
-#Delete identified data frames from environment and proceed using cohort1.csv
-
-write_csv(cohort3, "cohort3.csv")
-rm(df_2023, df_2024, cohort3)
-df3 <- read.csv("cohort3.csv")
-
-
-view(df3)
+view(df_all)
 ```
 
-Combining the Datasets
+## Rewriting Full Dataset of All Variables
 
 ```{r}
-{r}
-df1 <- read.csv("cohort1.csv")
-df2 <- read.csv("cohort2.csv")
-df3 <- read.csv("cohort3.csv")
-df_all <- bind_rows(df1, df2, df3)
+write.csv(df_all, "df_all.csv", row.names = FALSE)
 
-write.csv(df_all, "df_all_combined.csv", row.names = FALSE)
-
-df_all <- read.csv("df_all_combined.csv")
+df_all <- read.csv("df_all.csv")
 ```
+
+## Data Dictionary
+
+| Column Name | Data Type | Description / Notes |
+|----|----|----|
+| `id` | Factor / Character | Unique identifier for each student. Created to de-identify names. |
+| `grade` | Numeric | Student's current grade level at the time of the assessment. |
+| `cal_year` | Numeric | Calendar year of the assessment (e.g., 2008, 2009). |
+| `measure` | Factor | Specific assessment/skill measured (e.g., `rc`, `lwid`, `wa`). |
+| `score` | Numeric | Raw score or grade-equivalent score for the measure. |
+| `time` | Numeric | Timepoint within the school year: 1 = Fall, 2 = Spring. |
+| `program_year` | Numeric | Year in the program for the student (1 = first year, 2 = second year, etc.). |
+| `student_year` | Character | Unique identifier for each student × year (e.g., `10810_2008`). |
+| `domain_type` | Factor | Categorizes measures as `literacy`, `math`, or `other`. |
+| `grade_diff` | Numeric | Difference between the student's score and their actual grade level (`score - grade`). |
+| `fall_score` | Numeric | Score at Fall timepoint for that measure. |
+| `spring_score` | Numeric | Score at Spring timepoint for that measure. |
+| `raw_growth` | Numeric | Change in score from Fall to Spring (`spring_score - fall_score`). |
+| `grade_diff_c` | Numeric | Centered version of `grade_diff` (grand-mean centered). |
+| `time_cont` | Numeric | Continuous time variable across multiple years (e.g., 1, 2, 3, 4 for sequential semesters). |
+| `time_c` | Numeric | Centered continuous time variable for modeling growth trajectories. |

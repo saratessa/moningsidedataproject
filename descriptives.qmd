@@ -40,3 +40,11 @@ for (file in files) {
 }
 
 ```
+
+```{r}
+#just putting this here because I was running it to look at the other files and thought it might be helpful:
+
+cohort1 %>% 
+  group_by(program_year)%>%
+  summarise(n_unique_ids = n_distinct(id))
+```

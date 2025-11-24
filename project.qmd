@@ -4,33 +4,20 @@ format: html
 editor: visual
 ---
 
-Prep for Multilevel Modeling
-
-Binding separate cohorts and writing a new .csv with all files (skip this):
-
 ```{r}
-df1 <- read.csv("cohort1.csv")
-df2 <- read.csv("cohort2.csv")
-df3 <- read.csv("cohort3.csv")
-df_all <- bind_rows(df1, df2, df3)
-
-write.csv(df_all, "df_all_combined.csv", row.names = FALSE)
-
-df_all <- read.csv("df_all_combined.csv")
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor) 
+library(readxl)
+library(dplyr)
+library(lme4)
+library(lmerTest)
 ```
 
+Multilevel Modeling
+
 ```{r}
-df_all <- df_all %>%
-  group_by(id, cal_year, measure) %>%   # each student, each year, each skill
-  mutate(
-    fall_score  = if_else(time == 1, score, NA_real_),
-    spring_score = if_else(time == 2, score, NA_real_)
-  ) %>%
-  fill(fall_score, spring_score, .direction = "downup") %>% 
- mutate(
-  raw_growth = if_else(time == 2, spring_score - fall_score, NA_real_)
-)%>%
-  ungroup()
+the gr
 ```
 
 ```{r}
@@ -69,6 +56,18 @@ model_prog_year <- lmer(
 )
 
 summary(model_prog_year)
+
+```
+
+\
+
+```{r}
+m1 <- lmer(
+  raw_growth ~ factor(program_year) * grade_diff + (1 | id),
+  data = df_use
+)
+
+summary(m1)
 
 ```
 
