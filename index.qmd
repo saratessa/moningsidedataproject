@@ -153,7 +153,7 @@ cohort2 <- cohort2 %>%
   group_by(name) %>%
   mutate(
     studentnum = cur_group_id(),
-    id = paste0(studentnum, "0810") #for 2008-2010 cohort id
+    id = paste0(studentnum, "1517") #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
   select(-studentnum) %>%
@@ -252,6 +252,7 @@ df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
 df3 <- read.csv("cohort3.csv")
 df_all <- bind_rows(df1, df2, df3)
+
 ```
 
 ## Cleaning, Manipulating, Centering Variables for Analysis
@@ -270,6 +271,7 @@ df_all <- df_all %>%
     score = as.numeric(score)
   )
 
+
 df_all <- df_all %>%
   group_by(id) %>%
   mutate(
@@ -278,7 +280,10 @@ df_all <- df_all %>%
     # calculate how many years since the student's first year
     program_year = cal_year - first_year + 1
   ) %>%
-     select(-first_year)
+    select(-first_year)
+
+  #   select(-first_year)
+
 
 #adding a column for a continuous time variable (e.g., 1,2,3,4 time points)
 df_all <- df_all %>%

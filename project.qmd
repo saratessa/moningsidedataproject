@@ -98,7 +98,7 @@ Multilevel Modeling
 # Predictors: time, grade_diff, domain_type
 # Random effects: student intercept + slope, program year intercept
 # -----------------------------
-
+table(df_all$program_year)
 
 df_use <- df_all %>%
   filter(domain_type != "other", time == 2)    # only spring rows carry the real gain
