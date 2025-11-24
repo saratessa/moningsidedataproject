@@ -80,11 +80,9 @@ cohort1 <- bind_rows(df_2008, df_2009)
 cohort1 <- cohort1 %>%
   group_by(name) %>%
   mutate(
-    studentnum = cur_group_id(),
-    id = paste0(studentnum, "0810") #for 2008-2010 cohort id
+    id = paste0(name, "0810") #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
-  select(-studentnum) %>%
   select(-name) %>%
   relocate(id)
 
@@ -128,6 +126,7 @@ df_2016 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identifi
 #Switching wide to long, renaming spring/fall to time 1 and 2
 
 df_2016<- df_2016 %>%
+  mutate(across(matches("^(fall|spring)"), ~as.numeric(.))) %>% 
   pivot_longer(
     cols = c(starts_with("FALL"), starts_with("SPRING")),
     names_to = c("Season", "Measure"),
@@ -152,11 +151,9 @@ cohort2 <- bind_rows(df_2015, df_2016)
 cohort2 <- cohort2 %>%
   group_by(name) %>%
   mutate(
-    studentnum = cur_group_id(),
-    id = paste0(studentnum, "1517") #for 2008-2010 cohort id
+    id = paste0(name, "1517") #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
-  select(-studentnum) %>%
   select(-name) %>%
   relocate(id)
 
@@ -203,6 +200,7 @@ df_2024 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identifi
 #Switching wide to long, renaming spring/fall to time 1 and 2
 
 df_2024<- df_2024 %>%
+  mutate(across(matches("^(fall|spring)"), ~as.numeric(.))) %>% 
   pivot_longer(
     cols = c(starts_with("FALL"), starts_with("SPRING")),
     names_to = c("Season", "Measure"),
@@ -233,11 +231,9 @@ cohort3 <- bind_rows(df_2023, df_2024)
 cohort3 <- cohort3 %>%
   group_by(name) %>%
   mutate(
-    studentnum = cur_group_id(),
-    id = paste0(studentnum, "2325") #for 2023-2025 cohort id
+    id = paste0(name, "2325") #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
-  select(-studentnum) %>%
   select(-name) %>%
   relocate(id)
 
@@ -363,7 +359,7 @@ df_all <- read.csv("df_all.csv")
 ## Data Dictionary
 
 | Column Name | Data Type | Description / Notes |
-|----|----|----|
+|------------------------|------------------------|------------------------|
 | `id` | Factor / Character | Unique identifier for each student. Created to de-identify names. |
 | `grade` | Numeric | Student's current grade level at the time of the assessment. |
 | `cal_year` | Numeric | Calendar year of the assessment (e.g., 2008, 2009). |
