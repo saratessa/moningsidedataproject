@@ -77,6 +77,44 @@ ggplot(pred, aes(x = x, y = predicted)) +
     y = "Predicted Score"
   ) +
   theme_minimal()
+
+
+#OR
+
+pred <- ggpredict(m2, terms = c("program_year", "domain_type"))
+
+# Plot predicted scores
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Scores by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Score",
+    color = "Domain",
+    fill = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+#OR
+
+pred <- ggpredict(m2, terms = c("program_year", "domain_type"))
+
+# Plot with points and error bars instead of ribbon
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Raw Growth by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    color = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
 ```
 
 ## Model 3: Includes time_c to observe changes in growth rate over time- not done with this, stopping here
