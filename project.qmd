@@ -4,6 +4,8 @@ format: html
 editor: visual
 ---
 
+## Multilevel Modeling
+
 ```{r}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -12,28 +14,80 @@ library(readxl)
 library(dplyr)
 library(lme4)
 library(lmerTest)
+library(dplyr)
+library(ggplot2)
+library(ggeffects)
+
+df_all <- read.csv("df_all.csv")
 ```
 
-Multilevel Modeling
+## Model 1: Total Sample
 
 ```{r}
-the gr
+m1 <- lmer(
+  raw_growth ~ factor(program_year) * domain_type + start_grade_diff_c + measure + (1 | id),
+  data = df_all %>% filter (domain_type != "other", time == 2)
+)
+
+summary(m1)
+
+#model above is general growth by program year, domain type, initial skill moderation, and measure
+
+
+
 ```
 
-```{r}
+## Model 2: Only Scores Below Grade Level at Start Point
 
-df_growth <- df_all %>%
-  filter(domain_type != "other") %>%          # ← EXCLUDE "other"
-  arrange(id, program_year, measure, time) %>%
-  group_by(id, measure, domain_type, program_year) %>%
-  summarise(
-    growth = diff(score),                     # spring – fall gain
-    start_grade_diff = first(grade_diff),     # how far behind/ahead they started
-    .groups = "drop"
+```{r}
+m2 <- df_all %>%
+  filter(
+    start_grade_diff < 0,          # actually below grade level
+    domain_type != "other",
+    time == 2                      # growth rows
+  ) %>%
+  lmer(
+    raw_growth ~ factor(program_year) * domain_type +
+      start_grade_diff_c +
+      measure +
+      (1 | id),
+    data = .
   )
 
-df_growth$program_year_f <- factor(df_growth$program_year, levels = c(1, 2))
 
+summary(m2)
+```
+
+## Model 2 Visual
+
+```{r}
+
+# plot
+library(ggeffects)
+library(ggplot2)
+
+pred <- ggpredict(m2, terms = "program_year")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
+  labs(
+    title = "Predicted Scores by Program Year",
+    x = "Program Year (1 = Year 1, 2 = Year 2)",
+    y = "Predicted Score"
+  ) +
+  theme_minimal()
+```
+
+## Model 3: Includes time_c to observe changes in growth rate over time- not done with this, stopping here
+
+```{r}
+m3 <- lmer(
+  raw_growth ~ time_c * factor(program_year) + start_grade_diff_c + domain_type + measure + (1 | id),
+  data = df_all %>% filter(domain_type != "other")
+)
+
+summary(m3)
 ```
 
 Multilevel Modeling
