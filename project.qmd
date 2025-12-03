@@ -37,6 +37,16 @@ summary(m1)
 
 ```
 
+## Interpretation Notes m1
+
+students in 2nd year had .18 units more growth on average, p \<.016, effect is small
+
+no difference in 1st vs 2nd year by domain
+
+students who started higher grew substantially less (this is full sample so includes areas that weren't targeted), so this makes sense, also really high variability across areas
+
+high variability within students (makes sense considering targeted/untargeted areas) residual variance 3.24
+
 ## Model 1 Visual
 
 ```{r}
@@ -76,6 +86,14 @@ m2 <- df_all %>%
 
 summary(m2)
 ```
+
+## Interpretation Notes M2
+
+when considering only areas below grade level at start, 2nd year has an additional .23 units of growth, p = .008
+
+domain type- lower growth in math -0.41, p = .009
+
+shift to more variance between students .97 vs. .71 preiously, lower within student variance (makes sense, above grade level measures removed (2.49)
 
 ## Model 2 Visual
 
@@ -205,6 +223,55 @@ ggplot(pred, aes(x = x, y = predicted, color = group)) +
 
 ```
 
-\
+##  Model 5: interaction with acceleration/domain? idk
+
+```{r}
+m5 <- df_all %>%
+  filter(
+    start_grade_diff < 0,       # only students who start below grade level
+    domain_type != "other"      # keep literacy + math only
+  ) %>%
+  lmer(
+    score ~ time_c * factor(program_year) * domain_type +
+      start_grade_diff_c +
+      measure +
+      (time_c | id),
+    data = .
+  )
+
+summary(m5)
+```
 
 \
+**Do Year 2 students grow faster?**
+
+-   Year 2 students have a **significantly steeper growth slope** than Year 1 students.
+
+    Effect size = **+0.19** over the time scale you’re using. Statistically significant (p = .023).
+
+**Interaction: Time × Domain (–0.15, p = .038)**
+
+Math grows more slowly than literacy. Math growth slope is **0.15 points per unit time smaller** than literacy.
+
+```{r}
+pred <- ggpredict(m5, terms = c("time_c [all]", "program_year", "domain_type"))
+
+ggplot(pred, aes(x = time_c, y = predicted, color = factor(program_year))) +
+  geom_line(size = 1) +
+  geom_ribbon(
+    aes(ymin = conf.low, ymax = conf.high, fill = factor(program_year)),
+    alpha = 0.2,
+    color = NA
+  ) +
+  scale_color_manual(values = c("darkblue", "darkred")) +
+  scale_fill_manual(values = c("lightblue", "pink")) +
+  labs(
+    title = "Predicted Growth Over Time (Below Grade Level Students Only)",
+    x = "Time (centered)",
+    y = "Predicted Score",
+    color = "Program Year",
+    fill = "Program Year"
+  ) +
+  facet_wrap(~ domain_type, scales = "free_y") +
+  theme_minimal(base_size = 14)
+```
