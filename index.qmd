@@ -359,7 +359,7 @@ df_all <- read.csv("df_all.csv")
 ## Data Dictionary
 
 | Column Name | Data Type | Description / Notes |
-|------------------------|------------------------|------------------------|
+|----|----|----|
 | `id` | Factor / Character | Unique identifier for each student. Created to de-identify names. |
 | `grade` | Numeric | Student's current grade level at the time of the assessment. |
 | `cal_year` | Numeric | Calendar year of the assessment (e.g., 2008, 2009). |

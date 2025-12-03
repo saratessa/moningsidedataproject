@@ -136,7 +136,7 @@ ggplot(pred, aes(x = x, y = predicted, color = group)) +
 
 ```
 
-## Model 3: Includes time_c to observe changes in growth rate over time (still working on this
+## Model 3: Includes time_c to observe changes in growth rate over time (still working on this)
 
 ```{r}
 m3 <- lmer(
@@ -150,7 +150,20 @@ summary(m3)
 ## Model 3 Visual
 
 ```{r}
+pred <- ggpredict(m3, terms = c("program_year", "domain_type"))
 
+# Plot with points and error bars instead of ribbon
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Raw Growth by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    color = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
 ```
 
 ## Model 4: does growth accelerate? filtered by below at start point
@@ -172,10 +185,23 @@ m4 <- df_all %>%
 summary(m4)
 ```
 
-## Model 4 Visual
+## Model 4 Visual (this isn't right) 
 
 ```{r}
+pred <- ggpredict(m4, terms = c("program_year", "domain_type"))
 
+# Plot with points and error bars instead of ribbon
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Raw Growth by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    color = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
 
 ```
 
