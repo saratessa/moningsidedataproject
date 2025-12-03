@@ -358,21 +358,43 @@ df_all <- read.csv("df_all.csv")
 
 ## Data Dictionary
 
-| Column Name | Data Type | Description / Notes |
-|----|----|----|
-| `id` | Factor / Character | Unique identifier for each student. Created to de-identify names. |
-| `grade` | Numeric | Student's current grade level at the time of the assessment. |
-| `cal_year` | Numeric | Calendar year of the assessment (e.g., 2008, 2009). |
-| `measure` | Factor | Specific assessment/skill measured (e.g., `rc`, `lwid`, `wa`). |
-| `score` | Numeric | Raw score or grade-equivalent score for the measure. |
-| `time` | Numeric | Timepoint within the school year: 1 = Fall, 2 = Spring. |
-| `program_year` | Numeric | Year in the program for the student (1 = first year, 2 = second year, etc.). |
-| `student_year` | Character | Unique identifier for each student × year (e.g., `10810_2008`). |
-| `domain_type` | Factor | Categorizes measures as `literacy`, `math`, or `other`. |
-| `grade_diff` | Numeric | Difference between the student's score and their actual grade level (`score - grade`). |
-| `fall_score` | Numeric | Score at Fall timepoint for that measure. |
-| `spring_score` | Numeric | Score at Spring timepoint for that measure. |
-| `raw_growth` | Numeric | Change in score from Fall to Spring (`spring_score - fall_score`). |
-| `grade_diff_c` | Numeric | Centered version of `grade_diff` (grand-mean centered). |
-| `time_cont` | Numeric | Continuous time variable across multiple years (e.g., 1, 2, 3, 4 for sequential semesters). |
-| `time_c` | Numeric | Centered continuous time variable for modeling growth trajectories. |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| Column Name          | Data Type            | Description / Notes                                                                         |
++======================+======================+=============================================================================================+
+| `id`                 | Factor / Character   | Unique identifier for each student. Created to de-identify names.                           |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `grade`              | Numeric              | Student's current grade level at the time of the assessment.                                |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `cal_year`           | Numeric              | Calendar year of the assessment (e.g., 2008, 2009).                                         |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `measure`            | Factor               | Specific assessment/skill measured (e.g., `rc`, `lwid`, `wa`).                              |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `score`              | Numeric              | Raw score or grade-equivalent score for the measure.                                        |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `time`               | Numeric              | Timepoint within the school year: 1 = Fall, 2 = Spring.                                     |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `program_year`       | Numeric              | Year in the program for the student (1 = first year, 2 = second year, etc.).                |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `student_year`       | Character            | Unique identifier for each student × year (e.g., `10810_2008`).                             |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `domain_type`        | Factor               | Categorizes measures as `literacy`, `math`, or `other`.                                     |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `grade_diff`         | Numeric              | Difference between the student's score and their actual grade level (`score - grade`).      |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `fall_score`         | Numeric              | Score at Fall timepoint for that measure.                                                   |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `spring_score`       | Numeric              | Score at Spring timepoint for that measure.                                                 |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `raw_growth`         | Numeric              | Change in score from Fall to Spring (`spring_score - fall_score`).                          |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `grade_diff_c`       | Numeric              | Centered version of `grade_diff` (grand-mean centered).                                     |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `time_cont`          | Numeric              | Continuous time variable across multiple years (e.g., 1, 2, 3, 4 for sequential semesters). |
+|                      |                      |                                                                                             |
+|                      |                      | Fall year 1= 1\                                                                             |
+|                      |                      | Spring year 1 = 2\                                                                          |
+|                      |                      | Fall year 2 = 3\                                                                            |
+|                      |                      | Spring year 2 = 4                                                                           |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+
+| `time_c`             | Numeric              | Centered continuous time variable for modeling growth trajectories.                         |
++----------------------+----------------------+---------------------------------------------------------------------------------------------+

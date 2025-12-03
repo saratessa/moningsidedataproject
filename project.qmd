@@ -232,7 +232,7 @@ m5 <- df_all %>%
     domain_type != "other"      # keep literacy + math only
   ) %>%
   lmer(
-    score ~ time_c * factor(program_year) * domain_type +
+    raw_growth ~ time_c * factor(program_year) * domain_type +
       start_grade_diff_c +
       measure +
       (time_c | id),
