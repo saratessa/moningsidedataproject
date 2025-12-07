@@ -24,7 +24,9 @@ df_all <- read.csv("df_all.csv")
 ## Model 1: Total Sample
 
 ```{r}
-m1 <- lmer(
+m1 <- df_all
+  
+  lmer(
   raw_growth ~ factor(program_year) * domain_type + start_grade_diff_c + measure + (1 | id),
   data = df_all %>% filter (domain_type != "other", time == 2)
 )
@@ -203,7 +205,7 @@ m4 <- df_all %>%
 summary(m4)
 ```
 
-## Model 4 Visual (this isn't right) 
+## Model 4 Visual (this isn't right)
 
 ```{r}
 pred <- ggpredict(m4, terms = c("program_year", "domain_type"))
@@ -223,7 +225,7 @@ ggplot(pred, aes(x = x, y = predicted, color = group)) +
 
 ```
 
-##  Model 5: interaction with acceleration/domain? idk
+## Model 5: interaction with acceleration/domain? idk
 
 ```{r}
 m5 <- df_all %>%

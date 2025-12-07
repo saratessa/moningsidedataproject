@@ -1,0 +1,47 @@
+---
+title: "regression"
+format: html
+editor: visual
+---
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor) 
+library(readxl)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(ggplot2)
+library(ggeffects)
+
+df_all <- read.csv("df_all.csv")
+```
+
+TBD if this makes sense
+
+```{r}
+df_all <- df_all %>%
+  mutate(
+    seg1 = ifelse(time_cont <= 2, time_cont - 1, 0),
+    seg2 = ifelse(time_cont >= 3, time_cont - 3, 0),
+    jump = ifelse(time_cont == 3, 1, 0)
+  )
+
+r1 <- df_all %>% 
+  filter(
+    start_grade_diff < 0,
+    domain_type != "other"
+  ) %>% 
+  lmer(score ~ seg1 + seg2 + jump + (1 + seg1 + seg2 | id),
+       data = .)
+
+summary(r1)
+```
+
+Visuals
+
+```{r}
+
+```
