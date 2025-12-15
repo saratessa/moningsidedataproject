@@ -17,30 +17,83 @@ library(ggplot2)
 library(ggeffects)
 
 df_all <- read.csv("df_all.csv")
+
+view(df_all)
 ```
 
 TBD if this makes sense
 
 ```{r}
-df_all <- df_all %>%
+# Step 1: compute each student's baseline grade_diff
+baseline <- df_all %>%
+  filter(domain_type != "other") %>%
+  group_by(id) %>%
+  slice_min(time_cont) %>%      # take the first time point per student
+  select(id, baseline_grade_diff = grade_diff)
+
+# Step 2: filter df_all to include only students with baseline <= 0
+df_filtered <- df_all %>%
+  filter(domain_type != "other") %>%
+  inner_join(baseline %>% filter(baseline_grade_diff <= 0), by = "id") %>%
   mutate(
     seg1 = ifelse(time_cont <= 2, time_cont - 1, 0),
     seg2 = ifelse(time_cont >= 3, time_cont - 3, 0),
     jump = ifelse(time_cont == 3, 1, 0)
   )
 
-r1 <- df_all %>% 
-  filter(
-    start_grade_diff < 0,
-    domain_type != "other"
-  ) %>% 
-  lmer(score ~ seg1 + seg2 + jump + (1 + seg1 + seg2 | id),
-       data = .)
+# Step 3: fit the model
+r1_filtered <- lmer(grade_diff ~ seg1 + seg2 + jump + (1 + seg1 + seg2 | id), data = df_filtered)
 
-summary(r1)
+summary(r1_filtered)
 ```
 
-Visuals
+```{r}
+# Get predicted values from the model
+df_plot <- df_all %>%
+  filter(domain_type != "other") %>%
+  group_by(id) %>%
+  # Keep only students who have grade_diff <= 0 at their first time point
+  filter(grade_diff[time_cont == min(time_cont)] <= 0) %>%
+  ungroup() %>%
+  mutate(
+    seg1 = ifelse(time_cont <= 2, time_cont - 1, 0),
+    seg2 = ifelse(time_cont >= 3, time_cont - 3, 0),
+    jump = ifelse(time_cont == 3, 1, 0)
+  )
+
+# Add predicted values
+df_plot$pred_fixed <- predict(r1, newdata = df_plot, re.form = NA)
+
+# Plot
+ggplot(df_plot, aes(x = time_cont, y = grade_diff, group = id)) +
+  geom_line(color = "gray80", alpha = 0.5) +
+  geom_line(aes(y = pred_fixed), color = "blue", size = 1.2) +
+  geom_point(aes(y = pred_fixed), color = "blue", size = 2) +
+  labs(
+    x = "Time (continuum)",
+    y = "Grade difference from expected",
+    title = "Predicted Grade Differences (filtered: <=0 at baseline)"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+df_all %>%
+  filter(measure == "rc") %>%
+  group_by(id) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # KEEP only those IDs
+  ungroup() %>%
+  group_by(time_cont) %>%
+  summarise(
+    n = n(),
+    mean_grade_diff = mean(grade_diff, na.rm = TRUE),
+    sd_score = sd(score, na.rm = TRUE)
+  ) %>%
+  arrange(time_cont)
+
+```
+
+\
 
 ```{r}
 
