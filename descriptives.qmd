@@ -10,7 +10,7 @@ library(tidyverse)
 ```
 
 ```{r}
-files <- c("cohort1.csv", "cohort2.csv", "cohort3.csv")
+files <- c("df_all.csv")
 
 for (file in files) {
   cat("\n\n----", file, "----\n")
@@ -51,3 +51,60 @@ df_all %>%
 
 table(df_all$program_year)
 ```
+
+```{r}
+df_student_year <- df_all %>%
+  select(id, cal_year, program_year, grade) %>%
+  distinct()
+
+
+table_year_program <- df_student_year %>%
+  group_by(cal_year, program_year) %>%
+  summarise(
+    n_students = n_distinct(id),
+    .groups = "drop"
+  ) %>%
+  arrange(cal_year, program_year)
+
+table_year_program
+
+table_grade_distribution <- df_student_year %>%
+  group_by(cal_year, program_year, grade) %>%
+  summarise(
+    n_students = n_distinct(id),
+    .groups = "drop"
+  ) %>%
+  arrange(cal_year, program_year, grade)
+
+table_grade_distribution
+
+table_year_grade <- table_grade_distribution %>%
+  group_by(cal_year, grade) %>%
+  summarise(
+    n_students = sum(n_students),
+    .groups = "drop"
+  )
+table_year_grade_wide <- table_year_grade %>%
+  pivot_wider(
+    names_from = grade,
+    values_from = n_students,
+    values_fill = 0
+  ) %>%
+  arrange(cal_year)
+
+table_year_grade_wide
+
+table_grade_wide <- table_grade_distribution %>%
+  pivot_wider(
+    names_from = grade,
+    values_from = n_students,
+    values_fill = 0
+  )
+
+table_grade_wide
+
+df_all %>%
+  summarise(n_unique_students = n_distinct(id))
+```
+
+\

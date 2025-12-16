@@ -81,10 +81,8 @@ ggplot() +
     y = "Grade Difference",
     title = "Growth Across Four Timepoints (Students Below Grade at Start)",
     subtitle = "Individual trajectories (grey) and mean trajectory ± SE (blue)"
-  ) +
+  ) + coord_cartesian(ylim = c(-5, 5)) +  # <-- zoom y-axis
   theme_minimal()
-
-
 
 
 

@@ -21,14 +21,14 @@ library(ggeffects)
 df_all <- read.csv("df_all.csv")
 ```
 
-## Final Model(?) 
+## Final Model(?)
 
 Maybe change this to just use the df_below_measures dataset. might be cleaner? also- MMGI book filters 1.9 vs 2\>
 
 ```{r}
 m1 <- df_all %>%
   group_by(id, measure) %>%
-  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1 for that measure type
   ungroup() %>%
   filter(
     domain_type != "other",
