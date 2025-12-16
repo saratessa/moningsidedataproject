@@ -21,13 +21,131 @@ library(ggeffects)
 df_all <- read.csv("df_all.csv")
 ```
 
-## Model 1: Total Sample
+## Final Model(?) 
+
+Maybe change this to just use the df_below_measures dataset. might be cleaner? also- MMGI book filters 1.9 vs 2\>
+
+```{r}
+m1 <- df_all %>%
+  group_by(id, measure) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1
+  ungroup() %>%
+  filter(
+    domain_type != "other",
+    time == 2    # growth rows only
+  ) %>%
+  lmer(
+    raw_growth ~ factor(program_year) * domain_type +
+      start_grade_diff_c +
+      measure +
+      (1 + program_year| id),
+    data = .
+  )
+
+summary(m1)
+```
+
+Visualization
+
+```{r}
+pred <- ggpredict(m1, terms = "program_year")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
+  labs(
+    title = "Predicted Scores by Program Year",
+    x = "Program Year (1 = Year 1, 2 = Year 2)",
+    y = "Predicted Score"
+  ) +
+  theme_minimal()
+
+
+#OR
+
+pred <- ggpredict(m1, terms = c("program_year", "domain_type"))
+
+# Plot predicted scores
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Scores by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Score",
+    color = "Domain",
+    fill = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+#OR
+
+pred <- ggpredict(m1, terms = c("program_year", "domain_type"))
+
+# Plot with points and error bars instead of ribbon
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Raw Growth by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    color = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
+
+# 1️⃣ Keep only students and measures in the filtered dataset
+df_below_measures <- df_all %>%
+  group_by(id, measure) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # measures below grade at T1
+  ungroup() %>%
+  filter(domain_type != "other", time == 2)          # growth rows
+
+# 2️⃣ Generate predicted values for program_year x domain_type
+preds <- ggpredict(m1, terms = c("program_year", "domain_type"))
+pred_df <- as.data.frame(preds)
+
+# 3️⃣ Plot
+ggplot() +
+  # Individual student trajectories (gray)
+  geom_line(data = df_below_measures,
+            aes(x = program_year, y = raw_growth, group = id),
+            color = "grey70", alpha = 0.3) +
+  # Predicted mean trajectories by domain (colored lines)
+  geom_line(data = pred_df,
+            aes(x = x, y = predicted, color = group),
+            size = 1.2) +
+  # Confidence intervals for predicted means
+  geom_ribbon(data = pred_df,
+              aes(x = x, ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = 1:2, labels = c("Year 1", "Year 2")) +
+  labs(
+    x = "Program Year",
+    y = "Raw Growth",
+    color = "Domain Type",
+    fill = "Domain Type",
+    title = "Raw Growth Trajectories for Students Below Grade at T1",
+    subtitle = "Individual trajectories (gray) and predicted mean ± 95% CI (colored)"
+  ) +
+  theme_minimal()
+```
+
+\
+
+## Total Sample Model (Not using)
 
 ```{r}
 m1 <- df_all
   
   lmer(
-  raw_growth ~ factor(program_year) * domain_type + start_grade_diff_c + measure + (1 | id),
+  grade_diff ~ factor(program_year) * domain_type + start_grade_diff_c + measure + (1 | id),
   data = df_all %>% filter (domain_type != "other", time == 2)
 )
 
@@ -39,17 +157,7 @@ summary(m1)
 
 ```
 
-## Interpretation Notes m1
-
-students in 2nd year had .18 units more growth on average, p \<.016, effect is small
-
-no difference in 1st vs 2nd year by domain
-
-students who started higher grew substantially less (this is full sample so includes areas that weren't targeted), so this makes sense, also really high variability across areas
-
-high variability within students (makes sense considering targeted/untargeted areas) residual variance 3.24
-
-## Model 1 Visual
+## Total Sample Model Visual (Not using
 
 ```{r}
 pred <- ggpredict(m1, terms = c("program_year", "domain_type"))
@@ -71,22 +179,7 @@ ggplot(pred, aes(x = x, y = predicted, color = group)) +
 ## Model 2: Only Scores Below Grade Level at Start Point
 
 ```{r}
-m2 <- df_all %>%
-  filter(
-    start_grade_diff < 0,          # actually below grade level
-    domain_type != "other",
-    time == 2                      # growth rows
-  ) %>%
-  lmer(
-    raw_growth ~ factor(program_year) * domain_type +
-      start_grade_diff_c +
-      measure +
-      (1 | id),
-    data = .
-  )
 
-
-summary(m2)
 ```
 
 ## Interpretation Notes M2

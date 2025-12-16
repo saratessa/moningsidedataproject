@@ -17,9 +17,98 @@ library(ggplot2)
 library(ggeffects)
 
 df_all <- read.csv("df_all.csv")
-
-view(df_all)
 ```
+
+## Basic Summer Slide Analysis
+
+```{r}
+
+df_below_start <- df_all %>%
+  group_by(id, measure) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # keep only IDs below grade at T1
+  ungroup()
+
+r2 <- lmer(grade_diff ~ factor(time_cont) + (1 | id), data = df_below_start)
+summary(r2)
+```
+
+df_extremes_summary \<- df_extremes %\>%
+
+group_by(id) %\>%
+
+summarise(
+
+n_extreme = n(),
+
+max_grade_diff = max(grade_diff)
+
+) %\>%
+
+arrange(desc(max_grade_diff))
+
+df_extremes_summary
+
+```{r}
+#  Compute mean and SE at each timepoint
+df_below_measures <- df_all %>%
+  group_by(id, measure) %>%
+  # Keep only measures where the student was below 0 at T1
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%
+  ungroup()
+
+#  Plot
+ggplot() +
+  # Individual student trajectories
+  geom_line(data = df_below_measures, 
+            aes(x = time_cont, y = grade_diff, group = id),
+            color = "grey50", alpha = 0.1) +
+  # Mean trajectory
+  geom_line(data = df_summary, 
+            aes(x = time_cont, y = mean_grade_diff),
+            color = "blue", size = 1.5) +
+  # Mean points
+  geom_point(data = df_summary, 
+             aes(x = time_cont, y = mean_grade_diff),
+             color = "blue", size = 3) +
+  # SE bars
+  geom_errorbar(data = df_summary, 
+                aes(x = time_cont, ymin = mean_grade_diff - se, ymax = mean_grade_diff + se),
+                width = 0.1, color = "blue") +
+  # Axes and theme
+  scale_x_continuous(breaks = 1:4, labels = paste0("T", 1:4)) +
+  labs(
+    x = "Timepoint",
+    y = "Grade Difference",
+    title = "Growth Across Four Timepoints (Students Below Grade at Start)",
+    subtitle = "Individual trajectories (grey) and mean trajectory ± SE (blue)"
+  ) +
+  theme_minimal()
+
+
+
+
+
+```
+
+\
+
+```{r}
+extreme_values <- df_below_measures %>%
+  filter(grade_diff > 8) %>%
+  group_by(id, measure) %>%
+  summarise(
+    n_extreme = n(),
+    max_diff = max(grade_diff, na.rm = TRUE),
+    min_diff = min(grade_diff, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  arrange(desc(max_diff))
+
+# 3️⃣ View the table
+extreme_values
+```
+
+\
 
 TBD if this makes sense
 
@@ -27,7 +116,7 @@ TBD if this makes sense
 # Step 1: compute each student's baseline grade_diff
 baseline <- df_all %>%
   filter(domain_type != "other") %>%
-  group_by(id) %>%
+  group_by(id, measure) %>%
   slice_min(time_cont) %>%      # take the first time point per student
   select(id, baseline_grade_diff = grade_diff)
 
@@ -45,15 +134,31 @@ df_filtered <- df_all %>%
 r1_filtered <- lmer(grade_diff ~ seg1 + seg2 + jump + (1 + seg1 + seg2 | id), data = df_filtered)
 
 summary(r1_filtered)
+
+
+
+df_all %>%
+  filter(time_cont %in% c(2, 3)) %>%
+  group_by(time_cont) %>%
+  summarise(mean = mean(grade_diff, na.rm = TRUE))
+
+
+diag_jump <- lmer(
+  grade_diff ~ factor(time_cont) + (1 | id),
+  data = df_all %>% filter(time_cont %in% c(2, 3))
+)
+summary(diag_jump)
+
+
 ```
 
 ```{r}
 # Get predicted values from the model
 df_plot <- df_all %>%
   filter(domain_type != "other") %>%
-  group_by(id) %>%
+  group_by(id, measure) %>%
   # Keep only students who have grade_diff <= 0 at their first time point
-  filter(grade_diff[time_cont == min(time_cont)] <= 0) %>%
+  filter(any(grade_diff[time_cont == min(time_cont)] <= 0)) %>%
   ungroup() %>%
   mutate(
     seg1 = ifelse(time_cont <= 2, time_cont - 1, 0),
@@ -62,7 +167,7 @@ df_plot <- df_all %>%
   )
 
 # Add predicted values
-df_plot$pred_fixed <- predict(r1, newdata = df_plot, re.form = NA)
+df_plot$pred_fixed <- predict(r1_filtered, newdata = df_plot, re.form = NA)
 
 # Plot
 ggplot(df_plot, aes(x = time_cont, y = grade_diff, group = id)) +
