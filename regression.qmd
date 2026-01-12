@@ -182,7 +182,7 @@ ggplot(df_plot, aes(x = time_cont, y = grade_diff, group = id)) +
 
 ```{r}
 df_all %>%
-  filter(measure == "rc") %>%
+  filter(measure == "calc") %>%
   group_by(id) %>%
   filter(any(time_cont == 1 & grade_diff < 0)) %>%  # KEEP only those IDs
   ungroup() %>%
@@ -199,5 +199,30 @@ df_all %>%
 \
 
 ```{r}
+library(dplyr)
+library(ggplot2)
 
+summary_df <- df_all %>%
+  filter(measure == "wf") %>%
+  group_by(id) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # keep only IDs below at T1
+  ungroup() %>%
+  group_by(time_cont) %>%
+  summarise(
+    n = n(),
+    mean_grade_diff = mean(grade_diff, na.rm = TRUE),
+    sd_score = sd(score, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+ggplot(summary_df, aes(x = time_cont, y = mean_grade_diff)) +
+  geom_line() +
+  geom_point(size = 2) +
+  labs(
+    x = "Time Point",
+    y = "Mean Grade Difference",
+    title = "WF Growth Over Time",
+    subtitle = "Students below grade level at Timepoint 1"
+  ) +
+  theme_minimal()
 ```

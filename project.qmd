@@ -140,7 +140,93 @@ summary(m23)
 Visuals for cohorts 2 and 3
 
 ```{r}
+pred <- ggpredict(m23, terms = "program_year")
 
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
+  labs(
+    title = "Predicted Scores by Program Year",
+    x = "Program Year (1 = Year 1, 2 = Year 2)",
+    y = "Predicted Score"
+  ) +
+  theme_minimal()
+
+
+#OR
+
+pred <- ggpredict(m23, terms = c("program_year", "domain_type"))
+
+# Plot predicted scores
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Scores by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Score",
+    color = "Domain",
+    fill = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+#OR
+
+pred <- ggpredict(m23, terms = c("program_year", "domain_type"))
+
+# Plot with points and error bars instead of ribbon
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Raw Growth by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Raw Growth (Spring − Fall)",
+    color = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
+
+# 1️⃣ Keep only students and measures in the filtered dataset
+df_below_measures23 <- df23 %>%
+  group_by(id, measure) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # measures below grade at T1
+  ungroup() %>%
+  filter(domain_type != "other", time == 2)          # growth rows
+
+# 2️⃣ Generate predicted values for program_year x domain_type
+preds <- ggpredict(m23, terms = c("program_year", "domain_type"))
+pred_df <- as.data.frame(preds)
+
+# 3️⃣ Plot
+ggplot() +
+  # Individual student trajectories (gray)
+  geom_line(data = df_below_measures23,
+            aes(x = program_year, y = raw_growth, group = id),
+            color = "grey70", alpha = 0.3) +
+  # Predicted mean trajectories by domain (colored lines)
+  geom_line(data = pred_df,
+            aes(x = x, y = predicted, color = group),
+            size = 1.2) +
+  # Confidence intervals for predicted means
+  geom_ribbon(data = pred_df,
+              aes(x = x, ymin = conf.low, ymax = conf.high, fill = group),
+              alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = 1:2, labels = c("Year 1", "Year 2")) +
+  labs(
+    x = "Program Year",
+    y = "Raw Growth",
+    color = "Domain Type",
+    fill = "Domain Type",
+    title = "Raw Growth Trajectories for Students Below Grade at T1",
+    subtitle = "Individual trajectories (gray) and predicted mean ± 95% CI (colored)"
+  ) +
+  theme_minimal()
 ```
 
 ## Final Model(?)
