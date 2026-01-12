@@ -21,6 +21,128 @@ library(ggeffects)
 df_all <- read.csv("df_all.csv")
 ```
 
+Running the model for just cohort 2 and 3
+
+```{r}
+
+df23 <- bind_rows(df2, df3)
+
+colnames(df23)
+names(df23)<- c("id", "grade", "cal_year", "measure", "score", "time")
+df23 <- df23 %>%
+  mutate(
+    id = as.factor(id),
+    cal_year = as.numeric(cal_year),
+    grade = as.numeric(grade),
+    time = as.numeric(time),     # 1 = fall, 2 = spring
+    measure = as.factor(measure),
+    score = as.numeric(score)
+  )
+
+
+df23 <- df23 %>%
+  group_by(id) %>%
+  mutate(
+    # find the student's earliest year
+    first_year = min(cal_year, na.rm = TRUE),
+    # calculate how many years since the student's first year
+    program_year = cal_year - first_year + 1
+  ) %>%
+    select(-first_year)
+
+  #   select(-first_year)
+
+
+#adding a column for a continuous time variable (e.g., 1,2,3,4 time points)
+df23 <- df23 %>%
+  arrange(id, cal_year, time) %>%  # make sure data is sorted correctly
+  group_by(id) %>%
+  mutate(
+    time_cont = (cal_year - min(cal_year)) * 2 + time
+    # Explanation:
+    # min(cal_year) = first year for the student
+    # *2 because there are 2 time points per year (fall, spring)
+    # + time to get either 1 or 2 within that year
+  ) %>%
+  ungroup()
+
+#student_year identifier
+df23 <- df23 %>%
+  mutate(student_year = paste(id, cal_year, sep = "_"))
+
+#adding a column indicating literacy or math
+
+df23 <- df23 %>%
+  mutate(
+    domain_type = case_when(
+      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
+      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
+      TRUE ~ "other"
+    )
+  )
+
+#adding a column with difference from score to actual grade level
+
+df23 <- df23 %>%
+  mutate(
+    grade_diff = score - grade
+  )
+
+df23 <- df23 %>%
+  group_by(id, program_year, measure) %>%
+  mutate(
+    start_grade_diff = grade_diff[time == 1]   # fall = time 1
+  ) %>%
+  ungroup()
+
+#adding raw growth score on each measure
+
+df23 <- df23 %>%
+  group_by(id, cal_year, measure) %>%
+  arrange(time) %>%
+  mutate(
+    fall_score   = first(score),
+    spring_score = last(score),
+    raw_growth   = spring_score - fall_score
+  ) %>%
+  ungroup()
+
+
+#adding columns for centered variables 
+
+df23 <- df23 %>%
+  mutate(
+    start_grade_diff_c = as.numeric(scale(start_grade_diff, scale = FALSE)),  # center without scaling
+    time_c = time_cont - mean(time_cont, na.rm = TRUE)                          # center continuous time
+  ) %>%
+  ungroup()
+
+
+m23 <- df23 %>%
+  group_by(id, measure) %>%
+  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1 for that measure type
+  ungroup() %>%
+  filter(
+    domain_type != "other",
+    time == 2    # growth rows only
+  ) %>%
+  lmer(
+    raw_growth ~ factor(program_year) * domain_type +
+      start_grade_diff_c +
+      measure +
+      (1 + program_year| id),
+    data = .
+  )
+
+summary(m23)
+```
+
+Visuals for cohorts 2 and 3
+
+```{r}
+
+```
+
 ## Final Model(?)
 
 Maybe change this to just use the df_below_measures dataset. might be cleaner? also- MMGI book filters 1.9 vs 2\>
