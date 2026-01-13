@@ -22,14 +22,29 @@ df_all <- read.csv("df_all.csv")
 ## Basic Summer Slide Analysis
 
 ```{r}
+datamin <- df_all %>%
+  filter(time_cont==1) %>%
+  group_by(id)  %>%
+  mutate(min_skill = ifelse(score == min(score, na.rm = T), 1, 0)) %>%
+filter(min_skill == 1)
+```
+
+```{r}
 
 df_below_start <- df_all %>%
-  group_by(id, measure) %>%
-  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # keep only IDs below grade at T1
-  ungroup()
+  filter(time_cont==1) %>%
+  group_by(id)  %>%
+  mutate(min_skill = ifelse(score == min(score, na.rm = T), 1, 0)) %>%
+filter(min_skill == 1)
 
-r2 <- lmer(grade_diff ~ factor(time_cont) + (1 | id), data = df_below_start)
+
+df_below_start$measure <- as.factor(df_below_start$measure)
+df_below_start$measure <- fct_relevel(df_below_start$measure, "mf")
+
+r2 <- lm(raw_growth ~ measure, data = df_below_start)
 summary(r2)
+
+
 ```
 
 df_extremes_summary \<- df_extremes %\>%
