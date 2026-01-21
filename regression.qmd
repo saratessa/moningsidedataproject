@@ -30,7 +30,6 @@ filter(min_skill == 1)
 ```
 
 ```{r}
-
 df_below_start <- df_all %>%
   filter(time_cont==1) %>%
   group_by(id)  %>%
@@ -41,7 +40,7 @@ filter(min_skill == 1)
 df_below_start$measure <- as.factor(df_below_start$measure)
 df_below_start$measure <- fct_relevel(df_below_start$measure, "mf")
 
-r2 <- lm(raw_growth ~ measure, data = df_below_start)
+r2 <- lm(raw_growth ~ measure + start_grade_diff_c, data = df_below_start)
 summary(r2)
 
 
