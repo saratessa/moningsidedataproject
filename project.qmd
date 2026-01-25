@@ -6,6 +6,8 @@ editor: visual
 
 ## Multilevel Modeling
 
+Load packages
+
 ```{r}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
@@ -21,217 +23,7 @@ library(ggeffects)
 df_all <- read.csv("df_all.csv")
 ```
 
-Running the model for just cohort 2 and 3
-
-```{r}
-
-df23 <- bind_rows(df2, df3)
-
-colnames(df23)
-names(df23)<- c("id", "grade", "cal_year", "measure", "score", "time")
-df23 <- df23 %>%
-  mutate(
-    id = as.factor(id),
-    cal_year = as.numeric(cal_year),
-    grade = as.numeric(grade),
-    time = as.numeric(time),     # 1 = fall, 2 = spring
-    measure = as.factor(measure),
-    score = as.numeric(score)
-  )
-
-
-df23 <- df23 %>%
-  group_by(id) %>%
-  mutate(
-    # find the student's earliest year
-    first_year = min(cal_year, na.rm = TRUE),
-    # calculate how many years since the student's first year
-    program_year = cal_year - first_year + 1
-  ) %>%
-    select(-first_year)
-
-  #   select(-first_year)
-
-
-#adding a column for a continuous time variable (e.g., 1,2,3,4 time points)
-df23 <- df23 %>%
-  arrange(id, cal_year, time) %>%  # make sure data is sorted correctly
-  group_by(id) %>%
-  mutate(
-    time_cont = (cal_year - min(cal_year)) * 2 + time
-    # Explanation:
-    # min(cal_year) = first year for the student
-    # *2 because there are 2 time points per year (fall, spring)
-    # + time to get either 1 or 2 within that year
-  ) %>%
-  ungroup()
-
-#student_year identifier
-df23 <- df23 %>%
-  mutate(student_year = paste(id, cal_year, sep = "_"))
-
-#adding a column indicating literacy or math
-
-df23 <- df23 %>%
-  mutate(
-    domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
-      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
-      TRUE ~ "other"
-    )
-  )
-
-#adding a column with difference from score to actual grade level
-
-df23 <- df23 %>%
-  mutate(
-    grade_diff = score - grade
-  )
-
-df23 <- df23 %>%
-  group_by(id, program_year, measure) %>%
-  mutate(
-    start_grade_diff = grade_diff[time == 1]   # fall = time 1
-  ) %>%
-  ungroup()
-
-#adding raw growth score on each measure
-
-df23 <- df23 %>%
-  group_by(id, cal_year, measure) %>%
-  arrange(time) %>%
-  mutate(
-    fall_score   = first(score),
-    spring_score = last(score),
-    raw_growth   = spring_score - fall_score
-  ) %>%
-  ungroup()
-
-
-#adding columns for centered variables 
-
-df23 <- df23 %>%
-  mutate(
-    start_grade_diff_c = as.numeric(scale(start_grade_diff, scale = FALSE)),  # center without scaling
-    time_c = time_cont - mean(time_cont, na.rm = TRUE)                          # center continuous time
-  ) %>%
-  ungroup()
-
-
-m23 <- df23 %>%
-  group_by(id, measure) %>%
-  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1 for that measure type
-  ungroup() %>%
-  filter(
-    domain_type != "other",
-    time == 2    # growth rows only
-  ) %>%
-  lmer(
-    raw_growth ~ factor(program_year) * domain_type +
-      start_grade_diff_c +
-      measure +
-      (1 + program_year| id),
-    data = .
-  )
-
-summary(m23)
-```
-
-Visuals for cohorts 2 and 3
-
-```{r}
-pred <- ggpredict(m23, terms = "program_year")
-
-ggplot(pred, aes(x = x, y = predicted)) +
-  geom_line() +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
-  labs(
-    title = "Predicted Scores by Program Year",
-    x = "Program Year (1 = Year 1, 2 = Year 2)",
-    y = "Predicted Score"
-  ) +
-  theme_minimal()
-
-
-#OR
-
-pred <- ggpredict(m23, terms = c("program_year", "domain_type"))
-
-# Plot predicted scores
-ggplot(pred, aes(x = x, y = predicted, color = group)) +
-  geom_line(size = 1) +
-  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
-  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
-  labs(
-    title = "Predicted Scores by Program Year and Domain Type",
-    x = "Program Year",
-    y = "Predicted Score",
-    color = "Domain",
-    fill = "Domain"
-  ) +
-  theme_minimal(base_size = 14)
-
-
-#OR
-
-pred <- ggpredict(m23, terms = c("program_year", "domain_type"))
-
-# Plot with points and error bars instead of ribbon
-ggplot(pred, aes(x = x, y = predicted, color = group)) +
-  geom_point(size = 3) +
-  geom_errorbar(aes(ymin = conf.low, ymax = conf.high), width = 0.1) +
-  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
-  labs(
-    title = "Predicted Raw Growth by Program Year and Domain Type",
-    x = "Program Year",
-    y = "Predicted Raw Growth (Spring − Fall)",
-    color = "Domain"
-  ) +
-  theme_minimal(base_size = 14)
-
-
-
-
-# 1️⃣ Keep only students and measures in the filtered dataset
-df_below_measures23 <- df23 %>%
-  group_by(id, measure) %>%
-  filter(any(time_cont == 1 & grade_diff < 0)) %>%  # measures below grade at T1
-  ungroup() %>%
-  filter(domain_type != "other", time == 2)          # growth rows
-
-# 2️⃣ Generate predicted values for program_year x domain_type
-preds <- ggpredict(m23, terms = c("program_year", "domain_type"))
-pred_df <- as.data.frame(preds)
-
-# 3️⃣ Plot
-ggplot() +
-  # Individual student trajectories (gray)
-  geom_line(data = df_below_measures23,
-            aes(x = program_year, y = raw_growth, group = id),
-            color = "grey70", alpha = 0.3) +
-  # Predicted mean trajectories by domain (colored lines)
-  geom_line(data = pred_df,
-            aes(x = x, y = predicted, color = group),
-            size = 1.2) +
-  # Confidence intervals for predicted means
-  geom_ribbon(data = pred_df,
-              aes(x = x, ymin = conf.low, ymax = conf.high, fill = group),
-              alpha = 0.2, color = NA) +
-  scale_x_continuous(breaks = 1:2, labels = c("Year 1", "Year 2")) +
-  labs(
-    x = "Program Year",
-    y = "Raw Growth",
-    color = "Domain Type",
-    fill = "Domain Type",
-    title = "Raw Growth Trajectories for Students Below Grade at T1",
-    subtitle = "Individual trajectories (gray) and predicted mean ± 95% CI (colored)"
-  ) +
-  theme_minimal()
-```
-
-## Final Model(?)
-
-Maybe change this to just use the df_below_measures dataset. might be cleaner? also- MMGI book filters 1.9 vs 2\>
+## M1 (ALL measures that are below at timepoint 1) 
 
 ```{r}
 m1 <- df_all %>%
@@ -253,7 +45,7 @@ m1 <- df_all %>%
 summary(m1)
 ```
 
-Visualization
+### Visualization
 
 ```{r}
 pred <- ggpredict(m1, terms = "program_year")
@@ -345,7 +137,48 @@ ggplot() +
   theme_minimal()
 ```
 
-\
+## M2 (LOWEST measure at timepoint 1) 
+
+```{r}
+datamin$measure <- as.factor(datamin$measure)
+datamin$measure <- fct_relevel(datamin$measure,"mf")
+
+m2 <- lm(raw_growth ~ measure + start_grade_diff_c + program_year, data = datamin)
+summary(m2)
+
+```
+
+### Visualization
+
+```{r}
+library(emmeans)
+library(ggplot2)
+
+emm_meas <- emmeans(
+  m2, 
+  ~ measure,
+  at = list(start_grade_diff_c = 0)  # average starting level
+)
+
+emm_df <- as.data.frame(emm_meas)
+
+ggplot(emm_df, aes(x = reorder(measure, emmean), y = emmean)) +
+  geom_point(size = 2) +
+  geom_errorbar(
+    aes(ymin = emmean - SE, ymax = emmean + SE),
+    width = 0.2
+  ) +
+  coord_flip() +
+  labs(
+    x = "Lowest Starting Measure",
+    y = "Adjusted Mean Raw Growth",
+    title = "Adjusted Raw Growth by Lowest Starting Measure",
+    subtitle = "Adjusted for starting grade difference and program year"
+  ) +
+  theme_minimal()
+```
+
+------------------------------------------------------------------------
 
 ## Total Sample Model (Not using)
 
@@ -365,7 +198,7 @@ summary(m1)
 
 ```
 
-## Total Sample Model Visual (Not using
+## Total Sample Model Visual (Not using)
 
 ```{r}
 pred <- ggpredict(m1, terms = c("program_year", "domain_type"))
