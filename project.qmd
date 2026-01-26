@@ -151,6 +151,44 @@ summary(m2)
 ### Visualization
 
 ```{r}
+pred <- ggpredict(m2, terms = "program_year")
+
+ggplot(pred, aes(x = x, y = predicted)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = .2) +
+  labs(
+    title = "Predicted Scores by Program Year",
+    x = "Program Year (1 = Year 1, 2 = Year 2)",
+    y = "Predicted Score"
+  ) +
+  theme_minimal()
+
+
+#OR
+
+pred <- ggpredict(m1, terms = c("program_year", "domain_type"))
+
+# Plot predicted scores
+ggplot(pred, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  scale_x_continuous(breaks = c(1, 2), labels = c("Year 1", "Year 2")) +
+  labs(
+    title = "Predicted Scores by Program Year and Domain Type",
+    x = "Program Year",
+    y = "Predicted Score",
+    color = "Domain",
+    fill = "Domain"
+  ) +
+  theme_minimal(base_size = 14)
+
+
+
+
+
+```
+
+```{r}
 library(emmeans)
 library(ggplot2)
 
