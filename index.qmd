@@ -151,7 +151,7 @@ cohort2 <- bind_rows(df_2015, df_2016)
 cohort2 <- cohort2 %>%
   group_by(name) %>%
   mutate(
-    id = paste0(name, "1517") #for 2008-2010 cohort id
+    id = paste0(name, "1517"), #for 2008-2010 cohort id
   ) %>%
   ungroup() %>%
   select(-name) %>%
@@ -200,7 +200,11 @@ df_2024 <- read_excel("G:/My Drive/3. Research/Morningside Data Project/identifi
 #Switching wide to long, renaming spring/fall to time 1 and 2
 
 df_2024<- df_2024 %>%
-  mutate(across(matches("^(fall|spring)"), ~as.numeric(.))) %>% 
+  mutate(across(
+    c(starts_with("FALL"), starts_with("SPRING")),
+    ~ as.numeric(.)
+  )) %>%
+ # mutate(across(matches("^(fall|spring)"), ~as.numeric(.))) %>% 
   pivot_longer(
     cols = c(starts_with("FALL"), starts_with("SPRING")),
     names_to = c("Season", "Measure"),
@@ -247,16 +251,20 @@ rm(df_2023, df_2024, cohort3)
 df1 <- read.csv("cohort1.csv")
 df2 <- read.csv("cohort2.csv")
 df3 <- read.csv("cohort3.csv")
+df1$id <- as.character(df1$id)
+df2$id <- as.character(df2$id)
+df3$id <- as.character(df3$id)
 df_all <- bind_rows(df1, df2, df3)
+rm(df1, df2, df3)
 
 ```
 
 ## Cleaning, Manipulating, Centering Variables for Analysis
 
 ```{r}
-
 colnames(df_all)
 names(df_all)<- c("id", "grade", "cal_year", "measure", "score", "time")
+
 df_all <- df_all %>%
   mutate(
     id = as.factor(id),
@@ -298,13 +306,15 @@ df_all <- df_all %>%
 df_all <- df_all %>%
   mutate(student_year = paste(id, cal_year, sep = "_"))
 
-#adding a column indicating literacy or math
+#adding a column indicating subject area
 
 df_all <- df_all %>%
   mutate(
     domain_type = case_when(
-      measure %in% c("rc", "lang", "cap", "punc", "ue", "lwid", "wa", "rf", "wf", "ws") ~ "literacy",
-      measure %in% c("ce", "psdi", "comp", "mf", "maths", "calc") ~ "math",
+      measure %in% c("rc",  "lwid", "wa", "rf") ~ "reading",
+      measure %in% c("ce", "psdi", "mf", "calc") ~ "math",
+      measure %in% c("cap", "punc", "ue", "wf", "ws") ~ "writing",
+      measure %in% c("lang", "comp") ~ "composite",
       TRUE ~ "other"
     )
   )

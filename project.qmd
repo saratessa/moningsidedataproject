@@ -23,7 +23,7 @@ library(ggeffects)
 df_all <- read.csv("df_all.csv")
 ```
 
-## M1 (ALL measures that are below at timepoint 1) 
+## M1 (ALL measures that are below at timepoint 1)
 
 ```{r}
 m1 <- df_all %>%
@@ -137,7 +137,7 @@ ggplot() +
   theme_minimal()
 ```
 
-## M2 (LOWEST measure at timepoint 1) 
+## M2 (LOWEST measure at timepoint 1)
 
 ```{r}
 datamin$measure <- as.factor(datamin$measure)
