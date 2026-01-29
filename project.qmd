@@ -31,7 +31,8 @@ m1 <- df_all %>%
   filter(any(time_cont == 1 & grade_diff < 0)) %>%  # all measures where the ID was below 0 at time 1 for that measure type
   ungroup() %>%
   filter(
-    domain_type != "other",
+    domain_type != "other", 
+    domain_type != "composite",
     time == 2    # growth rows only
   ) %>%
   lmer(
