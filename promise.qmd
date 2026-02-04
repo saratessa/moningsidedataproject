@@ -1,0 +1,104 @@
+---
+title: "promise"
+format: html
+editor: visual
+---
+
+## Pulling Lowest Domain by Lowest Baseline Measure
+
+Load Packages
+
+```{r}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(janitor) 
+library(readxl)
+library(dplyr)
+library(lme4)
+library(lmerTest)
+library(dplyr)
+library(ggplot2)
+library(ggeffects)
+
+df_all <- read.csv("df_all.csv")
+```
+
+Identifying Lowest Domain/Student
+
+```{r}
+lowest_domain <- df_all %>%
+  filter(
+    time_cont == 1,
+    !is.na(grade_diff),
+    domain_type %in% c("reading", "writing", "math")
+  ) %>%   
+  group_by(id) %>%
+  slice_min(grade_diff, with_ties = FALSE) %>%
+  ungroup() %>%
+  select(id, lowest_domain = domain_type)
+```
+
+Flagging All Measures from Lowest Domain
+
+```{r}
+df_flagged <- df_all %>%
+  left_join(lowest_domain, by = "id") %>%
+  mutate(
+    lowest_domain_flag = domain_type == lowest_domain
+  )
+```
+
+Frequency of lowest domains?
+
+```{r}
+lowest_domain %>%
+  count(lowest_domain)
+```
+
+## Adding Domain Averages 
+
+```{r}
+domain_avg <- df_all %>%
+  filter(
+    time_cont == 1,
+    !is.na(grade_diff),
+    domain_type %in% c("reading", "writing", "math")
+  ) %>%
+  group_by(id, domain_type) %>%
+  summarize(
+    mean_grade_diff = mean(grade_diff),
+    n_measures = n(),
+    .groups = "drop"
+  )
+
+lowest_domain_avg <- domain_avg %>%
+  group_by(id) %>%
+  slice_min(mean_grade_diff, with_ties = FALSE) %>%
+  ungroup() %>%
+  rename(lowest_domain_avg = domain_type)
+
+domain_compare <- lowest_domain %>%
+  left_join(lowest_domain_avg, by = "id") %>%
+  mutate(
+    same_domain = lowest_domain == lowest_domain_avg
+  )
+
+df_all_flagged_avg <- df_all %>%
+  left_join(lowest_domain_avg, by = "id") %>%
+  mutate(
+    lowest_domain_avg_flag = domain_type == lowest_domain_avg
+  )
+```
+
+Testing agreement
+
+```{r}
+domain_compare %>%
+  count(same_domain) %>%
+  mutate(percent = n / sum(n) * 100)
+
+domain_compare %>%
+  filter(!same_domain)
+```
+
+\
